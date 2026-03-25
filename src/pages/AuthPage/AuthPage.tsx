@@ -32,7 +32,7 @@ type RegisterForm = z.infer<typeof registerSchema>
 type ForgotForm = z.infer<typeof forgotSchema>
 
 export default function AuthPage() {
-  const { loginWithEmail, registerWithEmail, loginWithGoogle, resetPassword, error, loading } = useAuth()
+  const { loginWithEmail, registerWithEmail, loginWithGoogle, resetPassword, error, loading, firebaseReady } = useAuth()
   const [searchParams] = useSearchParams()
   const mode = searchParams.get('mode') === 'register' ? 'register' : 'login'
 
@@ -62,19 +62,31 @@ export default function AuthPage() {
   })
 
   async function onLogin(data: LoginForm) {
-    await loginWithEmail(data.email, data.password)
-    navigate(fromPath, { replace: true })
+    try {
+      await loginWithEmail(data.email, data.password)
+      navigate(fromPath, { replace: true })
+    } catch {
+      // error is shown by AuthContext
+    }
   }
 
   async function onRegister(data: RegisterForm) {
-    await registerWithEmail(data.email, data.password, data.name)
-    navigate(fromPath, { replace: true })
+    try {
+      await registerWithEmail(data.email, data.password, data.name)
+      navigate(fromPath, { replace: true })
+    } catch {
+      // error is shown by AuthContext
+    }
   }
 
   async function onForgot(data: ForgotForm) {
-    await resetPassword(data.email)
-    setForgotMode(false)
-    navigate('/auth?mode=login', { replace: true })
+    try {
+      await resetPassword(data.email)
+      setForgotMode(false)
+      navigate('/auth?mode=login', { replace: true })
+    } catch {
+      // error is shown by AuthContext
+    }
   }
 
   return (
@@ -89,7 +101,11 @@ export default function AuthPage() {
               : 'Sign in to upload videos and manage your profile.'}
         </p>
 
-        {error ? (
+        {!firebaseReady ? (
+          <div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800 dark:border-red-900/50 dark:bg-red-900/10 dark:text-red-200">
+            Firebase לא מוגדר עדיין. צור קובץ <code>.env</code> בשורש הפרויקט עם ערכי <code>VITE_FIREBASE_*</code> לפי <code>.env.example</code>.
+          </div>
+        ) : error ? (
           <div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800 dark:border-red-900/50 dark:bg-red-900/10 dark:text-red-200">
             {error}
           </div>
@@ -101,10 +117,14 @@ export default function AuthPage() {
               <button
                 type="button"
                 onClick={async () => {
-                  await loginWithGoogle()
-                  navigate(fromPath, { replace: true })
+                  try {
+                    await loginWithGoogle()
+                    navigate(fromPath, { replace: true })
+                  } catch {
+                    // error is shown by AuthContext
+                  }
                 }}
-                disabled={loading}
+                disabled={loading || !firebaseReady}
                 className="w-full rounded-lg border border-black/10 bg-white px-4 py-2 text-sm font-medium hover:bg-gray-50 disabled:opacity-60 dark:border-white/10 dark:bg-gray-900/30 dark:hover:bg-gray-900/50"
               >
                 Continue with Google
@@ -119,7 +139,7 @@ export default function AuthPage() {
           )}
 
           {!forgotMode && mode === 'login' ? (
-            <form onSubmit={handleSubmit(onLogin)} className="space-y-3">
+              <form onSubmit={handleSubmit(onLogin)} className="space-y-3">
               <div>
                 <label className="text-sm font-medium" htmlFor="email">
                   Email
@@ -148,7 +168,7 @@ export default function AuthPage() {
 
               <button
                 type="submit"
-                disabled={loginSubmitting}
+                disabled={loginSubmitting || !firebaseReady}
                 className="w-full rounded-lg bg-purple-600 px-4 py-2 text-sm font-semibold text-white hover:bg-purple-700 disabled:opacity-60"
               >
                 {loginSubmitting ? 'Signing in...' : 'Login'}
@@ -235,7 +255,7 @@ export default function AuthPage() {
 
               <button
                 type="submit"
-                disabled={registerForm.formState.isSubmitting}
+                disabled={registerForm.formState.isSubmitting || !firebaseReady}
                 className="w-full rounded-lg bg-purple-600 px-4 py-2 text-sm font-semibold text-white hover:bg-purple-700 disabled:opacity-60"
               >
                 {registerForm.formState.isSubmitting ? 'Creating account...' : 'Create account'}
@@ -268,7 +288,7 @@ export default function AuthPage() {
               </div>
               <button
                 type="submit"
-                disabled={forgotForm.formState.isSubmitting}
+                disabled={forgotForm.formState.isSubmitting || !firebaseReady}
                 className="w-full rounded-lg bg-purple-600 px-4 py-2 text-sm font-semibold text-white hover:bg-purple-700 disabled:opacity-60"
               >
                 {forgotForm.formState.isSubmitting ? 'Sending...' : 'Send reset link'}

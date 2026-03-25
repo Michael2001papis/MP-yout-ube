@@ -18,6 +18,7 @@ import type { UserProfile } from '../types/UserProfile'
 
 type AuthContextValue = {
   loading: boolean
+  firebaseReady: boolean
   user: UserProfile | null
   role: AppRole
   blocked: boolean
@@ -30,6 +31,12 @@ type AuthContextValue = {
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
+
+function errorToMessage(e: unknown): string {
+  if (e instanceof Error) return e.message
+  if (typeof e === 'string') return e
+  return 'Something went wrong. Please try again.'
+}
 
 function getAdminEmails(): string[] {
   const raw = import.meta.env.VITE_ADMIN_EMAILS
@@ -150,7 +157,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } catch (e) {
         // eslint-disable-next-line no-console
         console.error('[Auth] Failed to initialize user session', e)
-        setError('Authentication failed. Please try again.')
+        setError(errorToMessage(e))
         setUser(null)
         setRole('guest')
         setBlocked(false)
@@ -164,36 +171,75 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const value = useMemo<AuthContextValue>(
     () => ({
       loading,
+      firebaseReady,
       user,
       role,
       blocked,
       error,
       loginWithEmail: async (email: string, password: string) => {
         setError(null)
-        await signInWithEmailAndPassword(auth, email, password)
+        try {
+          await signInWithEmailAndPassword(auth, email, password)
+        } catch (e) {
+          const msg = errorToMessage(e)
+          setError(msg)
+          // eslint-disable-next-line no-console
+          console.error('[Auth] loginWithEmail failed', e)
+          throw e
+        }
       },
       registerWithEmail: async (email: string, password: string, name: string) => {
         setError(null)
-        const cred = await createUserWithEmailAndPassword(auth, email, password)
-        // Sync displayName for nicer profile defaults.
-        if (name) {
-          if (cred.user) {
+        try {
+          const cred = await createUserWithEmailAndPassword(auth, email, password)
+          // Sync displayName for nicer profile defaults.
+          if (name && cred.user) {
             await updateProfile(cred.user, { displayName: name })
           }
+        } catch (e) {
+          const msg = errorToMessage(e)
+          setError(msg)
+          // eslint-disable-next-line no-console
+          console.error('[Auth] registerWithEmail failed', e)
+          throw e
         }
       },
       loginWithGoogle: async () => {
         setError(null)
-        const provider = new GoogleAuthProvider()
-        await signInWithPopup(auth, provider)
+        try {
+          const provider = new GoogleAuthProvider()
+          await signInWithPopup(auth, provider)
+        } catch (e) {
+          const msg = errorToMessage(e)
+          setError(msg)
+          // eslint-disable-next-line no-console
+          console.error('[Auth] loginWithGoogle failed', e)
+          throw e
+        }
       },
       resetPassword: async (email: string) => {
         setError(null)
-        await sendPasswordResetEmail(auth, email)
+        try {
+          await sendPasswordResetEmail(auth, email)
+        } catch (e) {
+          const msg = errorToMessage(e)
+          setError(msg)
+          // eslint-disable-next-line no-console
+          console.error('[Auth] resetPassword failed', e)
+          throw e
+        }
       },
       logout: async () => {
         setError(null)
-        await signOut(auth)
+        try {
+          await signOut(auth)
+        } catch (e) {
+          const msg = errorToMessage(e)
+          setError(msg)
+          // eslint-disable-next-line no-console
+          console.error('[Auth] logout failed', e)
+          throw e
+        }
       },
     }),
     [blocked, error, loading, role, user],

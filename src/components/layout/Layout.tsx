@@ -7,7 +7,7 @@ export default function Layout() {
   const { loading, error } = useAuth()
 
   return (
-    <div className="min-h-dvh bg-gray-50 text-gray-900 dark:bg-gray-950 dark:text-gray-100">
+    <div className="min-h-dvh bg-[var(--bg)] text-[var(--text)]">
       <Header />
       {error ? (
         <div className="mx-auto max-w-6xl px-4 pt-4">
