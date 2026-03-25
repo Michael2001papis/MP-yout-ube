@@ -7,6 +7,8 @@ import type { Video } from '../../types/Video'
 import VideoCard from '../../components/video/VideoCard'
 import CommentsSection from '../../components/comments/CommentsSection'
 import { formatDuration } from '../../utils/formatDuration'
+import { isFavorite, toggleFavorite } from '../../services/favoritesService'
+import { upsertWatchHistory } from '../../services/watchHistoryService'
 
 export default function WatchPage() {
   const { videoId } = useParams()
@@ -16,13 +18,18 @@ export default function WatchPage() {
   const [video, setVideo] = useState<Video | null>(null)
   const [related, setRelated] = useState<Video[]>([])
   const [error, setError] = useState<string | null>(null)
+  const [favoriteActive, setFavoriteActive] = useState(false)
+  const [favoriteLoading, setFavoriteLoading] = useState(false)
 
   const hasIncrementedRef = useRef(false)
+  const hasRecordedHistoryRef = useRef(false)
 
   useEffect(() => {
     if (!videoId) return
 
     let cancelled = false
+    hasIncrementedRef.current = false
+    hasRecordedHistoryRef.current = false
     setLoading(true)
     setError(null)
 
@@ -51,6 +58,12 @@ export default function WatchPage() {
         await incrementViews(videoId)
       }
 
+      if (user && !hasRecordedHistoryRef.current) {
+        // Track watch history once per session per video page view.
+        hasRecordedHistoryRef.current = true
+        await upsertWatchHistory({ userId: user.uid, videoId })
+      }
+
       const rel = await fetchRelatedVideos({ categoryId: v.categoryId, excludeVideoId: v.id })
       if (cancelled) return
       setRelated(rel)
@@ -67,6 +80,18 @@ export default function WatchPage() {
   }, [role, user, videoId])
 
   const uploadedDate = useMemo(() => (video ? new Date(video.uploadedAt).toLocaleDateString() : ''), [video])
+
+  async function refreshFavoriteState() {
+    if (!user || !video) return
+    const fav = await isFavorite({ userId: user.uid, videoId: video.id })
+    setFavoriteActive(fav)
+  }
+
+  useEffect(() => {
+    if (!user || !video) return
+    refreshFavoriteState().catch(() => {})
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [video?.id, user?.uid])
 
   if (loading) {
     return (
@@ -109,6 +134,31 @@ export default function WatchPage() {
             <span>{uploadedDate}</span>
             <span className="text-gray-400">•</span>
             <span>{formatDuration(video.durationSec)} duration</span>
+          </div>
+
+          <div className="mt-4 flex items-center gap-3">
+            <button
+              type="button"
+              onClick={async () => {
+                if (!user) return
+                setFavoriteLoading(true)
+                try {
+                  await toggleFavorite({ userId: user.uid, videoId: video.id })
+                  await refreshFavoriteState()
+                } finally {
+                  setFavoriteLoading(false)
+                }
+              }}
+              disabled={!user || favoriteLoading}
+              className={[
+                'rounded-lg border px-3 py-2 text-sm font-medium transition',
+                favoriteActive
+                  ? 'border-purple-600 bg-purple-50 text-purple-800 dark:border-purple-400 dark:bg-purple-950/40 dark:text-purple-100'
+                  : 'border-black/10 bg-white text-gray-700 hover:bg-gray-50 dark:border-white/10 dark:bg-gray-900/10 dark:text-gray-200 dark:hover:bg-gray-900/20',
+              ].join(' ')}
+            >
+              {user ? (favoriteActive ? 'Saved' : 'Save') : 'Sign in to save'}
+            </button>
           </div>
         </div>
 

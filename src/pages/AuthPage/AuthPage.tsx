@@ -5,6 +5,7 @@ import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 
 import { useAuth } from '../../context/AuthContext'
+import { missingFirebaseEnv } from '../../services/firebase'
 
 const loginSchema = z.object({
   email: z.string().email('Enter a valid email'),
@@ -103,7 +104,12 @@ export default function AuthPage() {
 
         {!firebaseReady ? (
           <div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800 dark:border-red-900/50 dark:bg-red-900/10 dark:text-red-200">
-            Firebase לא מוגדר עדיין. צור קובץ <code>.env</code> בשורש הפרויקט עם ערכי <code>VITE_FIREBASE_*</code> לפי <code>.env.example</code>.
+            Firebase לא מוגדר עדיין.
+            <div className="mt-2 text-xs leading-relaxed text-red-900/70 dark:text-red-200/80">
+              חסרים אצלך ערכים: <code>{missingFirebaseEnv.join(', ') || 'VITE_FIREBASE_*'}</code>
+              <br />
+              צור קובץ <code>.env</code> בשורש הפרויקט לפי <code>.env.example</code>, מלא ערכים נכונים, ורענן/הפעל מחדש את ה-dev server.
+            </div>
           </div>
         ) : error ? (
           <div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800 dark:border-red-900/50 dark:bg-red-900/10 dark:text-red-200">

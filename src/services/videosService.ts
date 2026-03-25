@@ -9,6 +9,7 @@ import {
   serverTimestamp,
   setDoc,
   updateDoc,
+  deleteDoc,
   where,
   increment,
   type DocumentReference,
@@ -108,6 +109,42 @@ export async function incrementViews(videoId: string): Promise<void> {
   if (!firebaseReady) return
   const ref = doc(db, 'videos', videoId)
   await updateDoc(ref, { views: increment(1) })
+}
+
+export async function updateVideoMetadata(args: {
+  videoId: string
+  ownerId: string
+  title: string
+  description: string
+  categoryId: string
+  tags: string[]
+  visibility: VideoVisibility
+}): Promise<void> {
+  if (!firebaseReady) return
+  const ref = doc(db, 'videos', args.videoId)
+  await updateDoc(ref, {
+    title: args.title,
+    description: args.description,
+    categoryId: args.categoryId,
+    tags: args.tags,
+    visibility: args.visibility,
+  })
+}
+
+export async function setVideoVisibility(args: {
+  videoId: string
+  ownerId: string
+  visibility: VideoVisibility
+}): Promise<void> {
+  if (!firebaseReady) return
+  const ref = doc(db, 'videos', args.videoId)
+  await updateDoc(ref, { visibility: args.visibility })
+}
+
+export async function deleteVideo(args: { videoId: string; ownerId: string }): Promise<void> {
+  if (!firebaseReady) return
+  const ref = doc(db, 'videos', args.videoId)
+  await deleteDoc(ref)
 }
 
 export async function fetchRelatedVideos(options: {

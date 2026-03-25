@@ -37,6 +37,8 @@ if (!firebaseEnv.appId) missing.push('VITE_FIREBASE_APP_ID')
 // If config isn't provided yet, fail fast with a clear message.
 export const firebaseReady = missing.length === 0
 
+export const missingFirebaseEnv = missing
+
 if (!firebaseReady) {
   // eslint-disable-next-line no-console
   console.warn(
