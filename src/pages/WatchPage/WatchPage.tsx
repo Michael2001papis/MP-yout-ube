@@ -90,22 +90,24 @@ export default function WatchPage() {
   if (!video) return null
 
   return (
-    <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_360px]">
+    <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
       <section>
-        <div className="overflow-hidden rounded-xl border border-black/10 bg-black">
+        <div className="overflow-hidden rounded-xl bg-black">
           {/* HTML5 video player */}
           <video src={video.videoUrl} controls className="h-auto w-full bg-black" />
         </div>
 
-        <div className="mt-4">
-          <h1 className="text-2xl font-semibold">{video.title}</h1>
-          <p className="mt-2 whitespace-pre-wrap text-sm text-gray-600 dark:text-gray-300">{video.description}</p>
+        <div className="mt-4 rounded-xl border border-black/10 bg-white p-4 dark:border-white/10 dark:bg-gray-900/20">
+          <h1 className="text-xl font-semibold leading-6">{video.title}</h1>
+          <p className="mt-2 whitespace-pre-wrap text-sm text-gray-700 dark:text-gray-200">
+            {video.description}
+          </p>
 
-          <div className="mt-3 flex flex-wrap gap-4 text-sm text-gray-500">
+          <div className="mt-3 flex flex-wrap items-center gap-3 text-sm text-gray-500">
             <span>{video.views.toLocaleString()} views</span>
-            <span>•</span>
+            <span className="text-gray-400">•</span>
             <span>{uploadedDate}</span>
-            <span>•</span>
+            <span className="text-gray-400">•</span>
             <span>{formatDuration(video.durationSec)} duration</span>
           </div>
         </div>

@@ -83,15 +83,15 @@ export default function HomePage() {
   }
 
   return (
-    <div>
-      <section className="rounded-2xl border border-black/10 bg-gradient-to-r from-purple-50 via-white to-indigo-50 p-6 dark:from-purple-950/30 dark:to-indigo-950/30">
-        <h1 className="text-3xl font-semibold tracking-tight">Watch, upload, and share.</h1>
-        <p className="mt-2 max-w-2xl text-sm text-gray-600 dark:text-gray-300">
-          A YouTube-inspired platform for local videos with categories, search, roles, and secure authentication.
+    <div className="space-y-6">
+      <section>
+        <h1 className="text-xl font-semibold tracking-tight">Recommended</h1>
+        <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">
+          Local videos with categories, tags, and search. Optimized for mobile and tablets.
         </p>
       </section>
 
-      <section className="mt-6">
+      <section>
         <form onSubmit={onSubmitSearch} className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <label className="sr-only" htmlFor="search">
             Search videos
@@ -102,69 +102,111 @@ export default function HomePage() {
             value={searchValue}
             onChange={(e) => setSearchValue(e.target.value)}
             placeholder="Search videos, tags, titles..."
-            className="w-full rounded-lg border border-black/10 bg-white px-4 py-2 text-sm outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200 dark:bg-gray-900"
+            className="w-full rounded-full border border-black/10 bg-white px-4 py-2 text-sm outline-none focus:border-black/20 focus:ring-2 focus:ring-purple-200 dark:bg-gray-900/40 dark:border-white/10"
           />
           <button
             type="submit"
-            className="rounded-lg bg-purple-600 px-4 py-2 text-sm font-medium text-white hover:bg-purple-700"
+            className="rounded-full bg-black px-5 py-2 text-sm font-medium text-white hover:bg-black/90 dark:bg-white dark:text-black"
           >
             Search
           </button>
         </form>
-
-        <div className="mt-4 flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={() => onApplyFilters(undefined)}
-            className={`rounded-full border px-3 py-1 text-xs ${
-              !visibleCategoryId
-                ? 'border-purple-600 bg-purple-600 text-white'
-                : 'border-black/10 bg-white text-gray-700 hover:bg-gray-50 dark:bg-gray-900/40 dark:text-gray-200'
-            }`}
-          >
-            All
-          </button>
-          {categories.map((c) => (
-            <button
-              key={c.id}
-              type="button"
-              onClick={() => onApplyFilters(c.id)}
-              className={`rounded-full border px-3 py-1 text-xs ${
-                visibleCategoryId === c.id
-                  ? 'border-purple-600 bg-purple-600 text-white'
-                  : 'border-black/10 bg-white text-gray-700 hover:bg-gray-50 dark:bg-gray-900/40 dark:text-gray-200'
-              }`}
-            >
-              {c.name}
-            </button>
-          ))}
-        </div>
       </section>
 
-      <section className="mt-6">
-        <div className="flex items-center justify-between gap-4">
-          <h2 className="text-lg font-semibold">Recommended / Local</h2>
-          <div className="text-sm text-gray-500">{loading ? 'Loading...' : `${videos.length} videos`}</div>
-        </div>
+      <div className="lg:grid lg:grid-cols-[240px_1fr] lg:gap-6">
+        <aside className="hidden lg:block">
+          <div className="sticky top-24 rounded-xl border border-black/10 bg-white p-3 dark:border-white/10 dark:bg-gray-900/20">
+            <div className="px-2 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+              Categories
+            </div>
+            <div className="mt-2 space-y-1">
+              <button
+                type="button"
+                onClick={() => onApplyFilters(undefined)}
+                className={`w-full rounded-lg px-3 py-2 text-left text-sm transition ${
+                  !visibleCategoryId
+                    ? 'bg-black text-white dark:bg-white dark:text-black'
+                    : 'bg-white text-gray-800 hover:bg-gray-100 dark:bg-gray-900/20 dark:text-gray-100 dark:hover:bg-gray-900'
+                }`}
+              >
+                All
+              </button>
+              {categories.map((c) => (
+                <button
+                  key={c.id}
+                  type="button"
+                  onClick={() => onApplyFilters(c.id)}
+                  className={`w-full rounded-lg px-3 py-2 text-left text-sm transition ${
+                    visibleCategoryId === c.id
+                      ? 'bg-black text-white dark:bg-white dark:text-black'
+                      : 'bg-white text-gray-800 hover:bg-gray-100 dark:bg-gray-900/20 dark:text-gray-100 dark:hover:bg-gray-900'
+                  }`}
+                >
+                  {c.name}
+                </button>
+              ))}
+            </div>
+          </div>
+        </aside>
 
-        {loading ? (
-          <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="animate-pulse rounded-lg border border-black/10 bg-gray-50 p-3 dark:bg-gray-900/30" />
-            ))}
+        <main className="min-w-0">
+          {/* Mobile chips */}
+          <div className="mt-2 lg:hidden">
+            <div className="flex gap-2 overflow-x-auto pb-2">
+              <button
+                type="button"
+                onClick={() => onApplyFilters(undefined)}
+                className={`shrink-0 rounded-full border px-3 py-1 text-xs transition ${
+                  !visibleCategoryId
+                    ? 'border-black bg-black text-white dark:border-white dark:bg-white dark:text-black'
+                    : 'border-black/10 bg-white text-gray-700 hover:bg-gray-100 dark:bg-gray-900/20 dark:text-gray-100 dark:hover:bg-gray-900'
+                }`}
+              >
+                All
+              </button>
+              {categories.map((c) => (
+                <button
+                  key={c.id}
+                  type="button"
+                  onClick={() => onApplyFilters(c.id)}
+                  className={`shrink-0 rounded-full border px-3 py-1 text-xs transition ${
+                    visibleCategoryId === c.id
+                      ? 'border-black bg-black text-white dark:border-white dark:bg-white dark:text-black'
+                      : 'border-black/10 bg-white text-gray-700 hover:bg-gray-100 dark:bg-gray-900/20 dark:text-gray-100 dark:hover:bg-gray-900'
+                  }`}
+                >
+                  {c.name}
+                </button>
+              ))}
+            </div>
           </div>
-        ) : videos.length === 0 ? (
-          <div className="mt-8 rounded-lg border border-black/10 bg-white p-4 text-sm text-gray-600 dark:bg-gray-900/30 dark:text-gray-200">
-            No videos match your filters.
-          </div>
-        ) : (
-          <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {videos.map((v) => (
-              <VideoCard key={v.id} video={v} />
-            ))}
-          </div>
-        )}
-      </section>
+
+          <section className="mt-6">
+            <div className="flex items-center justify-between gap-4">
+              <h2 className="text-lg font-semibold">Recommended / Local</h2>
+              <div className="text-sm text-gray-500">{loading ? 'Loading...' : `${videos.length} videos`}</div>
+            </div>
+
+            {loading ? (
+              <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+                {Array.from({ length: 8 }).map((_, i) => (
+                  <div key={i} className="animate-pulse rounded-lg bg-white/70 p-2 dark:bg-gray-900/30" />
+                ))}
+              </div>
+            ) : videos.length === 0 ? (
+              <div className="mt-8 rounded-xl border border-black/10 bg-white p-4 text-sm text-gray-600 dark:border-white/10 dark:bg-gray-900/20 dark:text-gray-200">
+                No videos match your filters.
+              </div>
+            ) : (
+              <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+                {videos.map((v) => (
+                  <VideoCard key={v.id} video={v} />
+                ))}
+              </div>
+            )}
+          </section>
+        </main>
+      </div>
     </div>
   )
 }

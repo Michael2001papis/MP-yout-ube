@@ -30,7 +30,7 @@ export default function Header() {
   }
 
   return (
-    <header className="sticky top-0 z-20 border-b border-black/10 bg-white/80 backdrop-blur dark:bg-black/30">
+    <header className="sticky top-0 z-20 border-b border-black/10 bg-white shadow-sm dark:bg-gray-950">
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
         <div className="flex items-center gap-3">
           <Link to="/" className="font-semibold tracking-tight">
@@ -91,7 +91,7 @@ export default function Header() {
             onClick={() => setMenuOpen((v) => !v)}
             aria-label={menuOpen ? 'Close menu' : 'Open menu'}
             aria-expanded={menuOpen}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-black/10 bg-white/60 hover:bg-white dark:border-white/10 dark:bg-black/20"
+            className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-black/10 bg-white hover:bg-gray-50 dark:border-white/10 dark:bg-gray-950 dark:hover:bg-gray-900"
           >
             <span className="sr-only">Menu</span>
             <div className="relative h-5 w-5">
