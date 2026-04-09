@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 
+import FirebaseConfigStatus from '../../components/auth/FirebaseConfigStatus'
 import { useAuth } from '../../context/AuthContext'
 import { missingFirebaseEnv } from '../../services/firebase'
 
@@ -44,6 +45,25 @@ function AdminAccessShieldIcon({ className }: { className?: string }) {
   )
 }
 
+function memberHeadline(forgotMode: boolean, mode: 'login' | 'register'): { title: string; subtitle: string } {
+  if (forgotMode) {
+    return {
+      title: 'Reset your password',
+      subtitle: 'We’ll email you a secure link to choose a new password.',
+    }
+  }
+  if (mode === 'register') {
+    return {
+      title: 'Create your account',
+      subtitle: 'Join to upload, engage with content, and personalize your experience.',
+    }
+  }
+  return {
+    title: 'Member sign in',
+    subtitle: 'Welcome back. Sign in to manage your profile, uploads, and library.',
+  }
+}
+
 export default function AuthPage() {
   const {
     loginWithEmail,
@@ -61,12 +81,14 @@ export default function AuthPage() {
   const location = useLocation()
   const navigate = useNavigate()
   const fromPath = useMemo(() => {
-    const state = location.state as any
+    const state = location.state as { from?: string } | null
     return state?.from ? String(state.from) : '/'
   }, [location.state])
 
   const [forgotMode, setForgotMode] = useState(false)
   const [googleBusy, setGoogleBusy] = useState(false)
+
+  const { title: memberTitle, subtitle: memberSubtitle } = memberHeadline(forgotMode, mode)
 
   const {
     register,
@@ -112,280 +134,303 @@ export default function AuthPage() {
     }
   }
 
-  return (
-    <div className="mx-auto max-w-md">
-      <div className="rounded-xl border border-black/10 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-gray-900/30">
-        <h1 className="text-2xl font-semibold">{forgotMode ? 'Reset password' : mode === 'register' ? 'Create account' : 'Login'}</h1>
-        <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
-          {forgotMode
-            ? 'We will email you a reset link.'
-            : mode === 'register'
-              ? 'Sign up to upload, comment, and save favorites.'
-              : 'Sign in to upload videos and manage your profile.'}
-        </p>
+  const signInDisabled = !firebaseReady
 
+  return (
+    <div className="mx-auto max-w-lg px-1">
+      <div className="rounded-2xl border border-black/10 bg-white p-8 shadow-sm dark:border-white/10 dark:bg-gray-900/40">
+        {/* —— Part 1: Member sign-in (identity + actions) —— */}
+        <header className="space-y-2">
+          <h1 className="text-2xl font-semibold tracking-tight text-gray-950 dark:text-gray-50">{memberTitle}</h1>
+          <p className="text-sm leading-relaxed text-gray-600 dark:text-gray-400">{memberSubtitle}</p>
+        </header>
+
+        {/* —— Part 2: System / Firebase status (only when needed) —— */}
         {!firebaseReady ? (
-          <div className="mt-4 rounded-lg border border-black/10 bg-black/[0.03] p-3 text-sm text-gray-700 dark:border-white/10 dark:bg-white/[0.06] dark:text-gray-200">
-            <div className="font-medium text-gray-900 dark:text-gray-100">חיבור ל-Firebase</div>
-            <p className="mt-1.5 text-xs leading-relaxed text-gray-600 dark:text-gray-400">
-              כדי להתחבר ולהעלות תוכן, צור <code className="rounded bg-black/5 px-1 py-0.5 dark:bg-white/10">.env</code> או{' '}
-              <code className="rounded bg-black/5 px-1 py-0.5 dark:bg-white/10">.env.local</code> לפי{' '}
-              <code className="rounded bg-black/5 px-1 py-0.5 dark:bg-white/10">.env.example</code>, מלא את כל משתני{' '}
-              <code className="rounded bg-black/5 px-1 py-0.5 dark:bg-white/10">VITE_FIREBASE_*</code>, הפעל מחדש את{' '}
-              <code className="rounded bg-black/5 px-1 py-0.5 dark:bg-white/10">npm run dev</code>, ואז נסה שוב.
-            </p>
-            {missingFirebaseEnv.length > 0 ? (
-              <p className="mt-2 text-xs text-gray-500 dark:text-gray-500">
-                משתנים חסרים: {missingFirebaseEnv.join(', ')}
-              </p>
-            ) : null}
+          <div className="mt-8">
+            <FirebaseConfigStatus missingKeys={missingFirebaseEnv} />
           </div>
-        ) : error ? (
-          <div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800 dark:border-red-900/50 dark:bg-red-900/10 dark:text-red-200">
+        ) : null}
+
+        {firebaseReady && error ? (
+          <div
+            className="mt-8 rounded-xl border border-red-200/90 bg-red-50/90 px-4 py-3 text-sm text-red-900 dark:border-red-900/40 dark:bg-red-950/30 dark:text-red-100"
+            role="alert"
+          >
             {error}
           </div>
         ) : null}
 
-        <div className="mt-5 space-y-4">
-          {!forgotMode && (
-            <>
-              <button
-                type="button"
-                onClick={async () => {
-                  try {
-                    setGoogleBusy(true)
-                    await loginWithGoogle()
-                    navigate(fromPath, { replace: true })
-                  } catch {
-                    // error is shown by AuthContext
-                  } finally {
-                    setGoogleBusy(false)
-                  }
-                }}
-                disabled={!firebaseReady || googleBusy}
-                aria-busy={googleBusy}
-                className="w-full rounded-lg border border-black/10 bg-white px-4 py-2 text-sm font-medium hover:bg-gray-50 disabled:opacity-60 dark:border-white/10 dark:bg-gray-900/30 dark:hover:bg-gray-900/50"
-              >
-                {googleBusy ? 'Connecting to Google…' : 'Continue with Google'}
-              </button>
-
-              <div className="flex items-center gap-3 text-xs text-gray-500">
-                <div className="h-px flex-1 bg-black/10" />
-                <span>or</span>
-                <div className="h-px flex-1 bg-black/10" />
-              </div>
-            </>
-          )}
-
-          {!forgotMode && mode === 'login' ? (
-              <form onSubmit={handleSubmit(onLogin)} className="space-y-3">
-              <div>
-                <label className="text-sm font-medium" htmlFor="email">
-                  Email
-                </label>
-                <input
-                  id="email"
-                  type="email"
-                  className="mt-1 w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-sm outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200 dark:border-white/10 dark:bg-gray-900/30"
-                  {...register('email')}
-                />
-                {loginErrors.email ? <p className="mt-1 text-xs text-red-600">{loginErrors.email.message}</p> : null}
-              </div>
-
-              <div>
-                <label className="text-sm font-medium" htmlFor="password">
-                  Password
-                </label>
-                <input
-                  id="password"
-                  type="password"
-                  className="mt-1 w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-sm outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200 dark:border-white/10 dark:bg-gray-900/30"
-                  {...register('password')}
-                />
-                {loginErrors.password ? <p className="mt-1 text-xs text-red-600">{loginErrors.password.message}</p> : null}
-              </div>
-
-              <button
-                type="submit"
-                disabled={loginSubmitting || !firebaseReady}
-                className="w-full rounded-lg bg-purple-600 px-4 py-2 text-sm font-semibold text-white hover:bg-purple-700 disabled:opacity-60"
-              >
-                {loginSubmitting ? 'Signing in...' : 'Login'}
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setForgotMode(true)}
-                className="w-full text-center text-sm text-purple-700 hover:underline dark:text-purple-300"
-              >
-                Forgot password?
-              </button>
-
-              <div className="text-center text-sm text-gray-600 dark:text-gray-300">
-                New here?{' '}
-                <Link to="/auth?mode=register" className="text-purple-700 hover:underline dark:text-purple-300">
-                  Create an account
-                </Link>
-              </div>
-            </form>
+        {/* Member actions: visually primary */}
+        <div className="mt-8">
+          {!firebaseReady && !forgotMode ? (
+            <p className="mb-4 text-xs leading-relaxed text-gray-500 dark:text-gray-500">
+              Sign-in options below are intentionally inactive until configuration is finished—they will work as soon as
+              the environment is ready.
+            </p>
           ) : null}
 
-          {!forgotMode && mode === 'register' ? (
-            <form onSubmit={registerForm.handleSubmit(onRegister)} className="space-y-3">
-              <div>
-                <label className="text-sm font-medium" htmlFor="name">
-                  Name
-                </label>
-                <input
-                  id="name"
-                  type="text"
-                  className="mt-1 w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-sm outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200 dark:border-white/10 dark:bg-gray-900/30"
-                  {...registerForm.register('name')}
-                />
-                {registerForm.formState.errors.name ? (
-                  <p className="mt-1 text-xs text-red-600">{registerForm.formState.errors.name.message}</p>
-                ) : null}
-              </div>
+          <div className="space-y-4">
+            {!forgotMode && (
+              <>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    try {
+                      setGoogleBusy(true)
+                      await loginWithGoogle()
+                      navigate(fromPath, { replace: true })
+                    } catch {
+                      // error is shown by AuthContext
+                    } finally {
+                      setGoogleBusy(false)
+                    }
+                  }}
+                  disabled={signInDisabled || googleBusy}
+                  aria-busy={googleBusy}
+                  aria-disabled={signInDisabled}
+                  className="flex w-full items-center justify-center rounded-xl border border-black/15 bg-white px-4 py-3 text-sm font-semibold text-gray-900 shadow-sm transition hover:bg-gray-50 disabled:pointer-events-none disabled:opacity-45 dark:border-white/15 dark:bg-gray-950/30 dark:text-gray-100 dark:hover:bg-gray-900/50"
+                >
+                  {googleBusy ? 'Connecting…' : 'Continue with Google'}
+                </button>
 
-              <div>
-                <label className="text-sm font-medium" htmlFor="email2">
-                  Email
-                </label>
-                <input
-                  id="email2"
-                  type="email"
-                  className="mt-1 w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-sm outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200 dark:border-white/10 dark:bg-gray-900/30"
-                  {...registerForm.register('email')}
-                />
-                {registerForm.formState.errors.email ? (
-                  <p className="mt-1 text-xs text-red-600">{registerForm.formState.errors.email.message}</p>
-                ) : null}
-              </div>
+                <div className="flex items-center gap-4 py-1">
+                  <div className="h-px flex-1 bg-black/10 dark:bg-white/10" />
+                  <span className="text-xs font-medium uppercase tracking-wider text-gray-400 dark:text-gray-500">
+                    or email
+                  </span>
+                  <div className="h-px flex-1 bg-black/10 dark:bg-white/10" />
+                </div>
+              </>
+            )}
 
-              <div>
-                <label className="text-sm font-medium" htmlFor="password2">
-                  Password
-                </label>
-                <input
-                  id="password2"
-                  type="password"
-                  className="mt-1 w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-sm outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200 dark:border-white/10 dark:bg-gray-900/30"
-                  {...registerForm.register('password')}
-                />
-                {registerForm.formState.errors.password ? (
-                  <p className="mt-1 text-xs text-red-600">{registerForm.formState.errors.password.message}</p>
-                ) : null}
-              </div>
+            {!forgotMode && mode === 'login' ? (
+              <form onSubmit={handleSubmit(onLogin)} className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium text-gray-800 dark:text-gray-200" htmlFor="email">
+                    Email
+                  </label>
+                  <input
+                    id="email"
+                    type="email"
+                    autoComplete="email"
+                    className="mt-1.5 w-full rounded-xl border border-black/10 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-purple-500 focus:ring-2 focus:ring-purple-200/80 dark:border-white/10 dark:bg-gray-950/40 dark:focus:ring-purple-900/40"
+                    {...register('email')}
+                  />
+                  {loginErrors.email ? <p className="mt-1 text-xs text-red-600 dark:text-red-400">{loginErrors.email.message}</p> : null}
+                </div>
 
-              <div>
-                <label className="text-sm font-medium" htmlFor="confirm">
-                  Confirm password
-                </label>
-                <input
-                  id="confirm"
-                  type="password"
-                  className="mt-1 w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-sm outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200 dark:border-white/10 dark:bg-gray-900/30"
-                  {...registerForm.register('confirmPassword')}
-                />
-                {registerForm.formState.errors.confirmPassword ? (
-                  <p className="mt-1 text-xs text-red-600">{registerForm.formState.errors.confirmPassword.message}</p>
-                ) : null}
-              </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-800 dark:text-gray-200" htmlFor="password">
+                    Password
+                  </label>
+                  <input
+                    id="password"
+                    type="password"
+                    autoComplete="current-password"
+                    className="mt-1.5 w-full rounded-xl border border-black/10 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-purple-500 focus:ring-2 focus:ring-purple-200/80 dark:border-white/10 dark:bg-gray-950/40 dark:focus:ring-purple-900/40"
+                    {...register('password')}
+                  />
+                  {loginErrors.password ? (
+                    <p className="mt-1 text-xs text-red-600 dark:text-red-400">{loginErrors.password.message}</p>
+                  ) : null}
+                </div>
 
-              <button
-                type="submit"
-                disabled={registerForm.formState.isSubmitting || !firebaseReady}
-                className="w-full rounded-lg bg-purple-600 px-4 py-2 text-sm font-semibold text-white hover:bg-purple-700 disabled:opacity-60"
-              >
-                {registerForm.formState.isSubmitting ? 'Creating account...' : 'Create account'}
-              </button>
+                <button
+                  type="submit"
+                  disabled={loginSubmitting || signInDisabled}
+                  className="w-full rounded-xl bg-purple-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-purple-700 disabled:pointer-events-none disabled:opacity-45 dark:hover:bg-purple-500"
+                >
+                  {loginSubmitting ? 'Signing in…' : 'Sign in'}
+                </button>
 
-              <div className="text-center text-sm text-gray-600 dark:text-gray-300">
-                Already have an account?{' '}
-                <Link to="/auth?mode=login" className="text-purple-700 hover:underline dark:text-purple-300">
-                  Login
-                </Link>
-              </div>
-            </form>
-          ) : null}
+                <button
+                  type="button"
+                  onClick={() => setForgotMode(true)}
+                  className="w-full text-center text-sm font-medium text-purple-700 hover:underline dark:text-purple-300"
+                >
+                  Forgot password?
+                </button>
 
-          {forgotMode ? (
-            <form onSubmit={forgotForm.handleSubmit(onForgot)} className="space-y-3">
-              <div>
-                <label className="text-sm font-medium" htmlFor="forgot-email">
-                  Email
-                </label>
-                <input
-                  id="forgot-email"
-                  type="email"
-                  className="mt-1 w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-sm outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200 dark:border-white/10 dark:bg-gray-900/30"
-                  {...forgotForm.register('email')}
-                />
-                {forgotForm.formState.errors.email ? (
-                  <p className="mt-1 text-xs text-red-600">{forgotForm.formState.errors.email.message}</p>
-                ) : null}
-              </div>
-              <button
-                type="submit"
-                disabled={forgotForm.formState.isSubmitting || !firebaseReady}
-                className="w-full rounded-lg bg-purple-600 px-4 py-2 text-sm font-semibold text-white hover:bg-purple-700 disabled:opacity-60"
-              >
-                {forgotForm.formState.isSubmitting ? 'Sending...' : 'Send reset link'}
-              </button>
-              <button
-                type="button"
-                onClick={() => setForgotMode(false)}
-                className="w-full text-center text-sm text-purple-700 hover:underline dark:text-purple-300"
-              >
-                Back to login
-              </button>
-            </form>
-          ) : null}
+                <div className="pt-1 text-center text-sm text-gray-600 dark:text-gray-400">
+                  New here?{' '}
+                  <Link to="/auth?mode=register" className="font-medium text-purple-700 hover:underline dark:text-purple-300">
+                    Create an account
+                  </Link>
+                </div>
+              </form>
+            ) : null}
+
+            {!forgotMode && mode === 'register' ? (
+              <form onSubmit={registerForm.handleSubmit(onRegister)} className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium text-gray-800 dark:text-gray-200" htmlFor="name">
+                    Name
+                  </label>
+                  <input
+                    id="name"
+                    type="text"
+                    autoComplete="name"
+                    className="mt-1.5 w-full rounded-xl border border-black/10 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-purple-500 focus:ring-2 focus:ring-purple-200/80 dark:border-white/10 dark:bg-gray-950/40 dark:focus:ring-purple-900/40"
+                    {...registerForm.register('name')}
+                  />
+                  {registerForm.formState.errors.name ? (
+                    <p className="mt-1 text-xs text-red-600 dark:text-red-400">{registerForm.formState.errors.name.message}</p>
+                  ) : null}
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium text-gray-800 dark:text-gray-200" htmlFor="email2">
+                    Email
+                  </label>
+                  <input
+                    id="email2"
+                    type="email"
+                    autoComplete="email"
+                    className="mt-1.5 w-full rounded-xl border border-black/10 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-purple-500 focus:ring-2 focus:ring-purple-200/80 dark:border-white/10 dark:bg-gray-950/40 dark:focus:ring-purple-900/40"
+                    {...registerForm.register('email')}
+                  />
+                  {registerForm.formState.errors.email ? (
+                    <p className="mt-1 text-xs text-red-600 dark:text-red-400">{registerForm.formState.errors.email.message}</p>
+                  ) : null}
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium text-gray-800 dark:text-gray-200" htmlFor="password2">
+                    Password
+                  </label>
+                  <input
+                    id="password2"
+                    type="password"
+                    autoComplete="new-password"
+                    className="mt-1.5 w-full rounded-xl border border-black/10 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-purple-500 focus:ring-2 focus:ring-purple-200/80 dark:border-white/10 dark:bg-gray-950/40 dark:focus:ring-purple-900/40"
+                    {...registerForm.register('password')}
+                  />
+                  {registerForm.formState.errors.password ? (
+                    <p className="mt-1 text-xs text-red-600 dark:text-red-400">{registerForm.formState.errors.password.message}</p>
+                  ) : null}
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium text-gray-800 dark:text-gray-200" htmlFor="confirm">
+                    Confirm password
+                  </label>
+                  <input
+                    id="confirm"
+                    type="password"
+                    autoComplete="new-password"
+                    className="mt-1.5 w-full rounded-xl border border-black/10 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-purple-500 focus:ring-2 focus:ring-purple-200/80 dark:border-white/10 dark:bg-gray-950/40 dark:focus:ring-purple-900/40"
+                    {...registerForm.register('confirmPassword')}
+                  />
+                  {registerForm.formState.errors.confirmPassword ? (
+                    <p className="mt-1 text-xs text-red-600 dark:text-red-400">
+                      {registerForm.formState.errors.confirmPassword.message}
+                    </p>
+                  ) : null}
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={registerForm.formState.isSubmitting || signInDisabled}
+                  className="w-full rounded-xl bg-purple-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-purple-700 disabled:pointer-events-none disabled:opacity-45 dark:hover:bg-purple-500"
+                >
+                  {registerForm.formState.isSubmitting ? 'Creating account…' : 'Create account'}
+                </button>
+
+                <div className="pt-1 text-center text-sm text-gray-600 dark:text-gray-400">
+                  Already have an account?{' '}
+                  <Link to="/auth?mode=login" className="font-medium text-purple-700 hover:underline dark:text-purple-300">
+                    Sign in
+                  </Link>
+                </div>
+              </form>
+            ) : null}
+
+            {forgotMode ? (
+              <form onSubmit={forgotForm.handleSubmit(onForgot)} className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium text-gray-800 dark:text-gray-200" htmlFor="forgot-email">
+                    Email
+                  </label>
+                  <input
+                    id="forgot-email"
+                    type="email"
+                    autoComplete="email"
+                    className="mt-1.5 w-full rounded-xl border border-black/10 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-purple-500 focus:ring-2 focus:ring-purple-200/80 dark:border-white/10 dark:bg-gray-950/40 dark:focus:ring-purple-900/40"
+                    {...forgotForm.register('email')}
+                  />
+                  {forgotForm.formState.errors.email ? (
+                    <p className="mt-1 text-xs text-red-600 dark:text-red-400">{forgotForm.formState.errors.email.message}</p>
+                  ) : null}
+                </div>
+                <button
+                  type="submit"
+                  disabled={forgotForm.formState.isSubmitting || signInDisabled}
+                  className="w-full rounded-xl bg-purple-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-purple-700 disabled:pointer-events-none disabled:opacity-45 dark:hover:bg-purple-500"
+                >
+                  {forgotForm.formState.isSubmitting ? 'Sending…' : 'Send reset link'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setForgotMode(false)}
+                  className="w-full text-center text-sm font-medium text-purple-700 hover:underline dark:text-purple-300"
+                >
+                  Back to sign in
+                </button>
+              </form>
+            ) : null}
+          </div>
         </div>
 
+        {/* —— Part 3: Administrator access —— */}
         {!forgotMode ? (
-          <div className="mt-8 border-t border-black/10 pt-6 dark:border-white/10">
-            <div className="rounded-xl border border-purple-200/70 bg-gradient-to-b from-purple-50/90 to-white/40 px-4 py-4 dark:border-purple-900/35 dark:from-purple-950/25 dark:to-gray-950/20">
-              <div className="flex gap-3 sm:gap-4">
+          <section
+            className="mt-10 border-t border-black/10 pt-10 dark:border-white/10"
+            aria-labelledby="admin-access-heading"
+          >
+            <div className="rounded-2xl border border-violet-200/60 bg-gradient-to-b from-violet-50/50 to-transparent px-5 py-5 dark:border-violet-900/30 dark:from-violet-950/20 dark:to-transparent">
+              <div className="flex gap-4">
                 <div
-                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-purple-100 text-purple-700 dark:bg-purple-950/70 dark:text-purple-300"
+                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-violet-100 text-violet-800 dark:bg-violet-950/60 dark:text-violet-200"
                   aria-hidden
                 >
                   <AdminAccessShieldIcon className="h-5 w-5" />
                 </div>
-                <div className="min-w-0 flex-1 space-y-2">
+                <div className="min-w-0 flex-1 space-y-4">
                   <div>
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-purple-800/90 dark:text-purple-200/95">
-                      System administrator
-                    </p>
-                    <p className="mt-1.5 text-xs leading-relaxed text-gray-600 dark:text-gray-400">
-                      Restricted entry for authorized staff. Same Firebase sign-in as members; elevated access is applied
-                      only to designated accounts after authentication.
+                    <h2
+                      id="admin-access-heading"
+                      className="text-xs font-semibold uppercase tracking-[0.14em] text-violet-900/90 dark:text-violet-200/95"
+                    >
+                      Administrator access
+                    </h2>
+                    <p className="mt-2 text-sm leading-relaxed text-gray-600 dark:text-gray-400">
+                      Restricted to platform operators. The same secure sign-in applies; elevated permissions are assigned
+                      only to approved accounts.
                     </p>
                   </div>
                   {firebaseReady && role === 'admin' && user ? (
                     <Link
                       to="/admin"
-                      className="flex w-full items-center justify-center rounded-lg border border-purple-400/40 bg-purple-600/95 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-purple-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple-500 dark:border-purple-400/20 dark:hover:bg-purple-600"
+                      className="flex w-full items-center justify-center rounded-xl border border-violet-500/30 bg-violet-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-violet-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-500 dark:hover:bg-violet-600"
                     >
-                      Open admin dashboard
+                      Open admin console
                     </Link>
                   ) : (
                     <Link
                       to="/admin-access"
                       state={{ from: '/auth' }}
-                      className="flex w-full items-center justify-center rounded-lg border border-purple-300/60 bg-white/80 px-4 py-2.5 text-sm font-medium text-purple-950 shadow-sm transition hover:border-purple-400 hover:bg-purple-50/90 dark:border-purple-700/50 dark:bg-gray-900/40 dark:text-purple-100 dark:hover:border-purple-500/60 dark:hover:bg-purple-950/35"
+                      className="flex w-full items-center justify-center rounded-xl border-2 border-violet-300/70 bg-white px-4 py-3 text-sm font-semibold text-violet-950 shadow-sm transition hover:border-violet-400 hover:bg-violet-50/80 dark:border-violet-700/50 dark:bg-gray-950/40 dark:text-violet-100 dark:hover:border-violet-500 dark:hover:bg-violet-950/25"
                     >
-                      Admin access
+                      Continue to administrator entry
                     </Link>
                   )}
                 </div>
               </div>
             </div>
-          </div>
+          </section>
         ) : null}
       </div>
     </div>
   )
 }
-
