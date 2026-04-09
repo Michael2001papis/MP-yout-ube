@@ -70,6 +70,9 @@ export default function Header() {
               <Link to="/dashboard" className="text-sm font-medium">
                 Dashboard
               </Link>
+              <Link to="/settings" className="text-sm font-medium">
+                Settings
+              </Link>
               {role === 'admin' ? (
                 <Link to="/admin" className="text-sm font-medium text-purple-700 dark:text-purple-300">
                   Admin
@@ -80,8 +83,7 @@ export default function Header() {
                 onClick={onLogout}
                 disabled={busy}
                 className="rounded-md border border-black/10 px-3 py-1 text-sm font-medium hover:bg-black/5 disabled:opacity-60 dark:hover:bg-white/5"
-                aria-label="Logout"
-                title={role}
+                aria-label="Sign out"
               >
                 {busy ? 'Logging out...' : 'Logout'}
               </button>
@@ -191,6 +193,13 @@ export default function Header() {
                   >
                     Dashboard
                   </Link>
+                  <Link
+                    to="/settings"
+                    onClick={() => setMenuOpen(false)}
+                    className="rounded-lg px-3 py-2 text-sm font-medium hover:bg-black/5 dark:hover:bg-white/5"
+                  >
+                    Settings
+                  </Link>
                   {role === 'admin' ? (
                     <Link
                       to="/admin"
@@ -208,8 +217,7 @@ export default function Header() {
                     }}
                     disabled={busy}
                     className="mt-1 rounded-lg px-3 py-2 text-left text-sm font-medium hover:bg-black/5 disabled:opacity-60 dark:hover:bg-white/5"
-                    aria-label="Logout"
-                    title={role}
+                    aria-label="Sign out"
                   >
                     {busy ? 'Logging out...' : 'Logout'}
                   </button>
