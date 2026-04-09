@@ -29,6 +29,9 @@ export function RequireAuth({ children }: { children: React.ReactNode }) {
   return <>{children}</>
 }
 
+// SECURITY: Role checks here are client-side only (SPA). Real authorization for admin APIs and
+// Firestore writes must be enforced with Firebase Security Rules (and/or Cloud Functions), not here.
+
 export function RequireRole({
   allowed,
   children,

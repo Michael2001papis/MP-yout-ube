@@ -38,6 +38,9 @@ function errorToMessage(e: unknown): string {
   return 'Something went wrong. Please try again.'
 }
 
+// SECURITY: Admin emails are baked into the client bundle via VITE_ADMIN_EMAILS — visible in shipped JS.
+// Treat as UX routing hints only; enforce privileged operations in Firebase Security Rules.
+
 function getAdminEmails(): string[] {
   const raw = import.meta.env.VITE_ADMIN_EMAILS
   if (!raw || typeof raw !== 'string') return []

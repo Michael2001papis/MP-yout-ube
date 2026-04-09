@@ -43,6 +43,8 @@ export default function WatchPage() {
         return
       }
 
+      // SECURITY: Visibility is enforced here for UX only. Anyone with direct Firestore read access
+      // to this document could still obtain hidden metadata unless Security Rules deny reads.
       const canViewHidden = role === 'admin' || (user && user.uid === v.ownerId)
       if (v.visibility === 'hidden' && !canViewHidden) {
         setVideo(null)

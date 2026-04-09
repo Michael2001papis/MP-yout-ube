@@ -87,6 +87,9 @@ export async function searchVideosLocally(options: {
   })
 }
 
+// SECURITY: Reads the video document as-is. Hidden videos must be blocked at the Firestore Rules layer;
+// this function does not filter by visibility — WatchPage applies UI checks after fetch.
+
 export async function fetchVideoById(videoId: string): Promise<Video | null> {
   if (!firebaseReady) return null
   const ref = doc(db, 'videos', videoId)
