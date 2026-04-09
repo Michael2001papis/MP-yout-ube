@@ -1,0 +1,129 @@
+MP-yout-ube — Firebase environment blocker verification
+=========================================================
+Purpose: Confirm why the app disables Firebase-backed features, validate that behavior matches code,
+and list exact steps to clear the blocker. Generated from inspection of `src/services/firebase.ts`,
+`.env.example`, `AuthPage`, `AdminEntryPage`, and Vite’s env model.
+
+--------------------------------------------------------------------------------
+REQUIRED VARIABLE NAMES (exactly six)
+--------------------------------------------------------------------------------
+As enforced in `src/services/firebase.ts`, every value must be a non-empty string after Vite resolves
+`import.meta.env`. If any one is missing or empty, `firebaseReady === false` and `missingFirebaseEnv`
+lists the keys that failed.
+
+1. VITE_FIREBASE_API_KEY
+2. VITE_FIREBASE_AUTH_DOMAIN
+3. VITE_FIREBASE_PROJECT_ID
+4. VITE_FIREBASE_STORAGE_BUCKET
+5. VITE_FIREBASE_MESSAGING_SENDER_ID
+6. VITE_FIREBASE_APP_ID
+
+Optional for admin *labeling / role hints* only (do not satisfy Firebase init):
+- VITE_ADMIN_EMAILS
+- VITE_ADMIN_DISPLAY_NAME
+
+--------------------------------------------------------------------------------
+DOES .env.example MATCH RUNTIME EXPECTATIONS?
+--------------------------------------------------------------------------------
+Yes. `.env.example` documents the same six `VITE_FIREBASE_*` keys, states that all six are required,
+notes Vite load timing (dev server start / build), local restart, and Vercel env + redeploy. Placeholder
+values must be replaced with real Web app config from Firebase Console (Project settings → Your apps).
+
+--------------------------------------------------------------------------------
+IS THE CURRENT CODE CORRECT?
+--------------------------------------------------------------------------------
+Yes, for the intended model:
+- `getEnv` returns `''` for undefined/non-string; empty string counts as missing.
+- `initializeApp` runs only when `missing.length === 0`.
+- `auth`, `db`, `storage` are only created when `firebaseReady`.
+- Services and `AuthContext` gate on `firebaseReady` / `assertFirebaseConfigured()`.
+
+--------------------------------------------------------------------------------
+IS THE BLOCKER CONFIG-ONLY OR CODE-RELATED?
+--------------------------------------------------------------------------------
+**Config-only.** The blocker appears when the six variables are absent or empty at the time Vite builds
+or starts the dev server. No application bug is required for the symptom. Fixing values + restart/rebuild
+resolves it.
+
+--------------------------------------------------------------------------------
+FAIL-CLOSED BEHAVIOR (VERIFIED)
+--------------------------------------------------------------------------------
+When `firebaseReady` is false:
+- No Firebase app initialization; no real Auth/Firestore/Storage instances.
+- `AuthContext` skips `onAuthStateChanged` and leaves user as guest (`AuthContext.tsx`).
+- Auth UI: warning + `missingFirebaseEnv` list; Google and submit controls disabled (`AuthPage`).
+- Admin entry: amber notice + missing keys list (`AdminEntryPage`).
+- `loginWith*` / `logout` throw if called without config (`assertFirebaseConfigured`).
+- Data services return safe defaults or no-ops (e.g. demo videos, empty arrays) per each service.
+
+This is correct fail-closed behavior for a client-only Firebase web app.
+
+--------------------------------------------------------------------------------
+UI INSTRUCTION ACCURACY
+--------------------------------------------------------------------------------
+- **AdminEntryPage:** Mentions `.env` / `.env.local`, all `VITE_FIREBASE_*`, Firebase Console, restart
+  `npm run dev`, Vercel env + redeploy, and lists missing keys — **accurate**.
+- **AuthPage:** After alignment, mentions `.env` or `.env.local`, all `VITE_FIREBASE_*`, `.env.example`,
+  and `npm run dev` restart — **accurate** for Vite.
+
+--------------------------------------------------------------------------------
+LOCAL DEVELOPMENT: RESTART AFTER .env / .env.local CHANGES
+--------------------------------------------------------------------------------
+**Yes, required.** Vite embeds `VITE_*` at dev server startup and at production build time. Editing
+`.env` or `.env.local` without restarting `npm run dev` typically leaves stale values in `import.meta.env`.
+
+--------------------------------------------------------------------------------
+VERCEL: SAME NAMES + FRESH DEPLOY
+--------------------------------------------------------------------------------
+**Yes.** Add the six variables in Vercel Project → Settings → Environment Variables (Production and any
+Preview environments that build the app). Names must match exactly, including the `VITE_` prefix.
+
+**Redeploy after adding or changing variables** so `vite build` runs with the new values. Old bundles
+do not pick up new env at runtime for these keys.
+
+--------------------------------------------------------------------------------
+GOOGLE SIGN-IN: STILL NEEDS CONSOLE SETUP
+--------------------------------------------------------------------------------
+Even with all six env vars correct, Google Sign-In additionally requires:
+- Firebase Console → Authentication → Sign-in method → **Google** enabled.
+- Authentication → Settings → **Authorized domains** including `localhost` (dev) and your production
+  host (e.g. `*.vercel.app` and custom domain).
+
+The app uses `GoogleAuthProvider` + `signInWithPopup` (`AuthContext.tsx`); failures such as
+`auth/unauthorized-domain` or `auth/operation-not-allowed` are mapped to user-facing messages.
+
+--------------------------------------------------------------------------------
+VERIFICATION CHECKLISTS
+--------------------------------------------------------------------------------
+
+A) Local dev
+[ ] Copy `.env.example` to `.env` or `.env.local` in the project root.
+[ ] Paste all six real values from Firebase Web app config (no empty strings).
+[ ] Optional: set `VITE_ADMIN_EMAILS` for admin role on first user doc creation.
+[ ] Stop and run `npm run dev` again.
+[ ] Open `/auth` — Firebase warning and missing-vars list should be gone.
+[ ] “Continue with Google” enabled; email login/register not greyed out for missing config.
+[ ] Sign in once; confirm header shows session.
+
+B) Vercel
+[ ] All six `VITE_FIREBASE_*` variables set for the target environment(s).
+[ ] Trigger a new deployment after saving env.
+[ ] Open production `/auth` and confirm the same as local (no missing-env UI).
+[ ] Add production domain to Firebase authorized domains if not already.
+
+C) Google Auth readiness
+[ ] Google provider enabled in Firebase Authentication.
+[ ] Authorized domains include localhost (for local) and production domain.
+[ ] Browser allows popups for the site (or expect `auth/popup-blocked` message).
+[ ] From `/auth`, complete Google sign-in and land back with active session.
+
+--------------------------------------------------------------------------------
+FINAL VERIFICATION STEPS (SUMMARY)
+--------------------------------------------------------------------------------
+1. Confirm `firebaseReady`: no setup banner on `/auth` and `/admin-access`; console should not log the
+   “[Firebase] Missing env vars” warning with a non-empty missing list.
+2. Exercise email login and Google login once each.
+3. Open a Firebase-backed flow (e.g. upload or comment) to confirm Firestore/Storage respond per your Rules.
+4. Non-admin: open `/admin` and confirm access denied (expected) if role is not admin.
+
+— End —

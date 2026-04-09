@@ -128,8 +128,11 @@ export default function AuthPage() {
           <div className="mt-4 rounded-lg border border-black/10 bg-black/[0.03] p-3 text-sm text-gray-700 dark:border-white/10 dark:bg-white/[0.06] dark:text-gray-200">
             <div className="font-medium text-gray-900 dark:text-gray-100">חיבור ל-Firebase</div>
             <p className="mt-1.5 text-xs leading-relaxed text-gray-600 dark:text-gray-400">
-              כדי להתחבר ולהעלות תוכן, הוסף קובץ <code className="rounded bg-black/5 px-1 py-0.5 dark:bg-white/10">.env</code> לפי{' '}
-              <code className="rounded bg-black/5 px-1 py-0.5 dark:bg-white/10">.env.example</code>, הפעל מחדש את השרת, ואז נסה שוב.
+              כדי להתחבר ולהעלות תוכן, צור <code className="rounded bg-black/5 px-1 py-0.5 dark:bg-white/10">.env</code> או{' '}
+              <code className="rounded bg-black/5 px-1 py-0.5 dark:bg-white/10">.env.local</code> לפי{' '}
+              <code className="rounded bg-black/5 px-1 py-0.5 dark:bg-white/10">.env.example</code>, מלא את כל משתני{' '}
+              <code className="rounded bg-black/5 px-1 py-0.5 dark:bg-white/10">VITE_FIREBASE_*</code>, הפעל מחדש את{' '}
+              <code className="rounded bg-black/5 px-1 py-0.5 dark:bg-white/10">npm run dev</code>, ואז נסה שוב.
             </p>
             {missingFirebaseEnv.length > 0 ? (
               <p className="mt-2 text-xs text-gray-500 dark:text-gray-500">
