@@ -22,7 +22,9 @@ const required = [
 
 function getEnv(name: (typeof required)[number]) {
   const val = import.meta.env[name]
-  return typeof val === 'string' ? val : ''
+  if (typeof val !== 'string') return ''
+  const trimmed = val.trim()
+  return trimmed
 }
 
 const firebaseEnv = {
