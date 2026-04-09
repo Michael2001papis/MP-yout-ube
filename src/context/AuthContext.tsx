@@ -32,6 +32,12 @@ type AuthContextValue = {
 
 const AuthContext = createContext<AuthContextValue | null>(null)
 
+function assertFirebaseConfigured(): void {
+  if (!firebaseReady) {
+    throw new Error('Firebase is not configured.')
+  }
+}
+
 function errorToMessage(e: unknown): string {
   if (e instanceof Error) return e.message
   if (typeof e === 'string') return e
@@ -182,6 +188,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       blocked,
       error,
       loginWithEmail: async (email: string, password: string) => {
+        assertFirebaseConfigured()
         setError(null)
         try {
           await signInWithEmailAndPassword(auth, email, password)
@@ -194,6 +201,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       },
       registerWithEmail: async (email: string, password: string, name: string) => {
+        assertFirebaseConfigured()
         setError(null)
         try {
           const cred = await createUserWithEmailAndPassword(auth, email, password)
@@ -210,6 +218,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       },
       loginWithGoogle: async () => {
+        assertFirebaseConfigured()
         setError(null)
         try {
           const provider = new GoogleAuthProvider()
@@ -223,6 +232,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       },
       resetPassword: async (email: string) => {
+        assertFirebaseConfigured()
         setError(null)
         try {
           await sendPasswordResetEmail(auth, email)
@@ -235,6 +245,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       },
       logout: async () => {
+        assertFirebaseConfigured()
         setError(null)
         try {
           await signOut(auth)

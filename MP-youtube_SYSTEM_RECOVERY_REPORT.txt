@@ -1,0 +1,140 @@
+================================================================================
+MP-yout-ube — SYSTEM RECOVERY REPORT
+Date: 2026-04-09
+Scope: Structural stability, global CSS, auth guards, build verification.
+      No visual redesign, no new pages, no animations.
+================================================================================
+
+--------------------------------------------------------------------------------
+1. ROOT PROBLEMS FOUND
+--------------------------------------------------------------------------------
+
+A. Global typography (FIXED IN THIS PASS)
+   • Legacy Vite-style rules set h1 to very large pixel sizes (56px) and h2 to
+     24px with margins. All screens already use Tailwind `text-*` on headings,
+     but the global rules increased specificity surface area and could cause
+     confusing cascade behavior across browsers or future edits.
+
+B. Global layout (ADDRESSED IN EARLIER COMMITS; VERIFIED STABLE)
+   • #app was previously constrained/centered like a demo template; current code
+     uses full width, left alignment, flex column, min-height 100svh — correct
+     for a video shell.
+
+C. Unused theme tokens in :root / .dark / .warm (FIXED IN THIS PASS)
+   • --social-bg and --shadow were defined but never referenced in TSX or CSS
+     (dead weight after legacy block removal).
+
+D. Auth + missing Firebase (MITIGATED EARLIER + HARDENED NOW)
+   • Setting a global `error` when env vars were missing produced a red banner
+     on every route — removed from context; Auth page carries setup copy.
+   • Auth methods could theoretically be invoked with `auth === null` when
+     Firebase was not configured — now fail fast with assertFirebaseConfigured().
+
+E. Document height chain (FIXED IN THIS PASS)
+   • html/body height was implicit only; added html { height: 100% } and
+     body { min-height: 100% } for predictable full-viewport stacking with #app.
+
+F. Remaining non-code risks (DOCUMENT ONLY)
+   • Firestore Security Rules must enforce hidden videos and admin writes — not
+     solvable in the SPA alone (see section 6).
+   • React StrictMode in dev can double-invoke effects (e.g. view increments);
+     production behavior differs.
+
+--------------------------------------------------------------------------------
+2. WHAT WAS FIXED (THIS PASS)
+--------------------------------------------------------------------------------
+
+  • src/style.css
+      - Replaced global h1/h2 font-size/margin template rules with margin-only
+        reset on h1, h2, h3 (Tailwind owns typography).
+      - Added html/body height baseline.
+      - Removed unused CSS variables: --social-bg, --shadow, --heading.
+  • src/context/AuthContext.tsx
+      - assertFirebaseConfigured() before login/register/google/reset/logout so
+        calls never hit Firebase with a null app when misconfigured.
+
+  • Build: `npm run build` (tsc + vite) — PASS after changes.
+
+--------------------------------------------------------------------------------
+3. WHAT WAS CLEANED
+--------------------------------------------------------------------------------
+
+  • Global CSS: no duplicate heading size blocks; fewer theme tokens; comments
+    clarify that headings are utility-driven.
+  • Logical noise: auth entry points reject unconfigured Firebase explicitly.
+
+  (Already clean from prior work: legacy #center / #next-steps / .hero blocks
+   removed; route lazy loading for Watch, Auth, Upload, Admin.)
+
+--------------------------------------------------------------------------------
+4. WHAT STILL NEEDS ATTENTION
+--------------------------------------------------------------------------------
+
+  • Firebase: deploy and test real Security Rules for videos (visibility),
+    users, favorites, comments, storage paths.
+  • Testing: no automated E2E in repo — manual smoke on mobile drawer, upload,
+    watch, auth flows after `.env` is set.
+  • Search: client-side filter over a limited Firestore fetch — acceptable for
+    demo; not scalable without server-side search.
+  • Bundle: main chunk ~225 KB minified; Firebase still in large shared chunk —
+    acceptable for stability pass; further splitting optional later.
+  • README vs features: keep documentation aligned with implemented behavior
+    when you next edit docs.
+
+--------------------------------------------------------------------------------
+5. VISUAL ONLY VS REAL FUNCTIONALITY
+--------------------------------------------------------------------------------
+
+  Visual-only (does not enforce security by itself)
+    • Route guards (RequireAuth / RequireRole) — hide UI routes; do not stop a
+      determined client from calling Firestore with custom code if rules allow.
+    • “Admin” derived from VITE_ADMIN_EMAILS — visible in bundle; must match
+      server-side policy via Rules.
+    • Hidden video message on Watch — UI hides player; document read may still
+      be possible if Rules allow public read of hidden docs.
+
+  Real functionality (actual behavior when configured)
+    • Firebase Auth sign-in/out, session via onAuthStateChanged.
+    • Firestore reads/writes as implemented in services (when rules permit).
+    • Storage uploads from Upload page.
+    • Forms validated with zod + react-hook-form.
+    • Lazy-loaded routes load correct chunks after Suspense.
+
+--------------------------------------------------------------------------------
+6. SECURITY WARNING REVIEW (CLIENT-SIDE DOCUMENTATION)
+--------------------------------------------------------------------------------
+
+  Already annotated in source (do not treat UI as security boundary):
+    • src/context/AuthContext.tsx — VITE_ADMIN_EMAILS exposure.
+    • src/routes/guards.tsx — client-only role checks.
+    • src/pages/WatchPage/WatchPage.tsx — hidden visibility UX vs Rules.
+    • src/services/videosService.ts — fetchVideoById reads raw document.
+
+  Action for production: write and test Firebase Security Rules; never rely on
+  this SPA alone for authorization or confidentiality.
+
+--------------------------------------------------------------------------------
+7. STABILITY SCORE (1–100)
+--------------------------------------------------------------------------------
+
+  Score: 86
+
+  Rationale: Global layout and typography inheritance are predictable; globals are
+  lean; auth calls are guarded; production build succeeds. Points deducted for
+  external dependency on Rules not verified in-repo and lack of automated
+  regression tests.
+
+--------------------------------------------------------------------------------
+8. READY / NOT READY FOR UI REDESIGN
+--------------------------------------------------------------------------------
+
+  Status: READY FOR UI REDESIGN (foundational pass complete)
+
+  Conditions before treating the product as “production-ready” (orthogonal to
+  redesign): validate Firebase Rules in a staging project, run manual QA on core
+  flows, and fix any issues found — not blockers for starting visual/UI work on
+  the current stable shell.
+
+================================================================================
+END OF REPORT
+================================================================================
