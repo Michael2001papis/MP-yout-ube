@@ -12,6 +12,7 @@ import {
 } from 'firebase/auth'
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore'
 
+import { getConfiguredAdminEmails } from '../config/adminEnv'
 import { auth, db, firebaseReady } from '../services/firebase'
 import type { AppRole } from '../types/role'
 import type { UserProfile } from '../types/UserProfile'
@@ -67,17 +68,8 @@ function firebaseAuthErrorMessage(e: unknown): string {
   return errorToMessage(e)
 }
 
-// SECURITY: Admin emails are baked into the client bundle via VITE_ADMIN_EMAILS — visible in shipped JS.
+// SECURITY: Admin emails come from VITE_ADMIN_EMAILS (see config/adminEnv.ts) — visible in shipped JS.
 // Treat as UX routing hints only; enforce privileged operations in Firebase Security Rules.
-
-function getAdminEmails(): string[] {
-  const raw = import.meta.env.VITE_ADMIN_EMAILS
-  if (!raw || typeof raw !== 'string') return []
-  return raw
-    .split(',')
-    .map((s) => s.trim().toLowerCase())
-    .filter(Boolean)
-}
 
 function mapFirebaseUserToProfile(fbUser: FirebaseUser, role: AppRole, blocked: boolean): UserProfile {
   return {
@@ -95,7 +87,7 @@ async function ensureUserDoc(fbUser: FirebaseUser): Promise<UserProfile> {
   const ref = doc(db, 'users', fbUser.uid)
   const snap = await getDoc(ref)
 
-  const adminEmails = getAdminEmails()
+  const adminEmails = getConfiguredAdminEmails()
   const isAdmin = !!fbUser.email && adminEmails.includes(fbUser.email.toLowerCase())
 
   if (snap.exists()) {

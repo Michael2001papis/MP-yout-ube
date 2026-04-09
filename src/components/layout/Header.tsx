@@ -70,6 +70,11 @@ export default function Header() {
               <Link to="/dashboard" className="text-sm font-medium">
                 Dashboard
               </Link>
+              {role === 'admin' ? (
+                <Link to="/admin" className="text-sm font-medium text-purple-700 dark:text-purple-300">
+                  Admin
+                </Link>
+              ) : null}
               <button
                 type="button"
                 onClick={onLogout}
@@ -186,6 +191,15 @@ export default function Header() {
                   >
                     Dashboard
                   </Link>
+                  {role === 'admin' ? (
+                    <Link
+                      to="/admin"
+                      onClick={() => setMenuOpen(false)}
+                      className="rounded-lg px-3 py-2 text-sm font-medium text-purple-700 hover:bg-purple-50 dark:text-purple-300 dark:hover:bg-purple-950/30"
+                    >
+                      Admin
+                    </Link>
+                  ) : null}
                   <button
                     type="button"
                     onClick={async () => {

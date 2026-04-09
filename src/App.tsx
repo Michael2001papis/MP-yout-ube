@@ -11,6 +11,7 @@ import ProfilePage from './pages/ProfilePage/ProfilePage'
 import DashboardPage from './pages/DashboardPage/DashboardPage'
 import SettingsPage from './pages/SettingsPage/SettingsPage'
 import AboutPage from './pages/AboutPage/AboutPage'
+import AdminEntryPage from './pages/AdminEntryPage/AdminEntryPage'
 import LegalPage from './pages/LegalPage/LegalPage'
 import NotFoundPage from './pages/NotFoundPage/NotFoundPage'
 
@@ -67,6 +68,7 @@ export default function App() {
                 }
               />
               <Route path="/about" element={<AboutPage />} />
+              <Route path="/admin-access" element={<AdminEntryPage />} />
               <Route path="/legal/:docType" element={<LegalPage />} />
               <Route
                 path="/admin"
