@@ -1,0 +1,94 @@
+MP-yout-ube — Auth flow reset & rebuild report
+==============================================
+This documents a structural reset of the `/auth` experience (not a label-only tweak).
+
+--------------------------------------------------------------------------------
+1. WHAT WAS REMOVED FROM THE OLD FLOW
+--------------------------------------------------------------------------------
+
+- **Single monolithic `AuthPage.tsx`** that mixed member UI, a large Firebase configuration block inside the same
+  card, and a full administrator access section (violet panel, shield, CTAs to `/admin-access` or `/admin`).
+- **Administrator UI inside the member card** — no longer part of the sign-in surface.
+- **`FirebaseConfigStatus` on `/auth`** — the long “system configuration” panel is no longer embedded in the primary
+  member card (that component remains available for `/admin-access` where operators need fuller context).
+- **Redundant explanatory paragraphs** above disabled controls inside the card (replaced by one subtle footer link
+  in the card when env is incomplete).
+- **Duplicated Zod schemas in the page file** — moved to `authSchemas.ts` for a single source of truth.
+
+--------------------------------------------------------------------------------
+2. WHAT WAS REBUILT
+--------------------------------------------------------------------------------
+
+- **`AuthPage.tsx`** — layout orchestration only:
+  - If Firebase is ready: centered **single column** (`max-w-md`) with the member card only.
+  - If not ready: **two-column grid** on large screens (member card + support panel), stacked on small screens.
+  - **Page footer** (outside the card): tertiary “Administrator entry” link to `/admin-access`.
+- **`MemberAuthCard.tsx`** — dedicated member experience:
+  - Headlines for sign-in, register, and forgot password.
+  - Google button, email/password flows, validation, navigation after success.
+  - Auth errors from `AuthContext` when Firebase is ready.
+  - Disabled controls when `!firebaseReady` with `opacity` + `pointer-events` for intentional inactivity.
+  - When disabled: a single inline link **“Why can’t I sign in?”** → `#auth-setup-support`.
+- **`authSchemas.ts`** — `loginSchema`, `registerSchema`, `forgotSchema` and exported types.
+- **`AuthSetupSupportPanel.tsx`** — secondary, dashed-border **“Environment setup”** column used only on `/auth` when
+  configuration is incomplete: short copy, restart / Vercel note, collapsible list of required variable names.
+
+--------------------------------------------------------------------------------
+3. WHAT WAS SEPARATED
+--------------------------------------------------------------------------------
+
+| Concern              | Where it lives now                                      |
+|---------------------|----------------------------------------------------------|
+| Member sign-in/up   | `MemberAuthCard.tsx` only                               |
+| Firebase / env help | `AuthSetupSupportPanel.tsx` (aside on `/auth` when needed) |
+| Admin / operators   | Footer link → `/admin-access`; dashboard still `/admin` for role `admin` |
+| Full operator doc   | `AdminEntryPage` + existing `FirebaseConfigStatus`      |
+
+--------------------------------------------------------------------------------
+4. HOW MEMBER AUTH NOW WORKS
+--------------------------------------------------------------------------------
+
+- User opens `/auth` (or `/auth?mode=register`).
+- **Google** and **email** flows call the same `AuthContext` methods as before.
+- After success, `navigate(fromPath)` uses router `state.from` when present, else `/`.
+- **Forgot password** toggles inside the card without leaving the route (then returns to login mode).
+- **No admin role checks** in the member card — admins sign in like any user; elevated UI remains on `/admin` and
+  header when `role === 'admin'`.
+
+--------------------------------------------------------------------------------
+5. HOW FIREBASE STATUS IS NOW PRESENTED
+--------------------------------------------------------------------------------
+
+- **Not** in the center of the white member card as a dominant block.
+- **Secondary column** (desktop) or **below** the card (mobile) with muted dashed border and smaller typographic scale.
+- Technical variable names hidden behind **`<details>`** to reduce clutter.
+- Dev-only hint about restarting the dev server after `.env` changes.
+
+--------------------------------------------------------------------------------
+6. HOW ADMIN ACCESS IS NOW SEPARATED
+--------------------------------------------------------------------------------
+
+- **No** administrator panel, shield block, or “Open admin console” button on the member auth card.
+- **Footer line** only: “Platform operator? **Administrator entry** · separate from member sign-in” → `/admin-access`.
+- **`/admin-access`** unchanged in purpose: dedicated staff landing, optional `FirebaseConfigStatus`, sign-in CTA,
+  non-admin messaging, Rules disclaimer.
+
+--------------------------------------------------------------------------------
+7. IS THE NEW FLOW CLEARER AND MORE STABLE?
+--------------------------------------------------------------------------------
+
+**Clearer:** Yes — one mental model per surface (members vs setup vs operators), fewer competing visual hierarchies.
+
+**More stable:** Behavior is unchanged at the integration layer (`AuthContext`, Firebase init, guards). Stability gains
+are structural: smaller files, explicit boundaries, easier to change member copy or support copy independently.
+
+--------------------------------------------------------------------------------
+8. WHAT STILL DEPENDS ON FIREBASE CONFIGURATION
+--------------------------------------------------------------------------------
+
+- All six `VITE_FIREBASE_*` variables must be non-empty for `firebaseReady` (`src/services/firebase.ts`).
+- Until then: member controls stay disabled; support panel explains setup; **no** session or Firestore from the real app.
+- **Google Sign-In** and **email auth** still require Firebase Console (providers, authorized domains) in addition to env.
+- **Production security** still requires Firebase Security Rules (and/or backend) — unchanged by this UI reset.
+
+— End —
