@@ -95,6 +95,15 @@ export default function MemberAuthCard() {
       <header className="space-y-1.5">
         <h1 className="text-2xl font-semibold tracking-tight text-gray-950 dark:text-gray-50">{title}</h1>
         <p className="text-sm text-gray-600 dark:text-gray-400">{subtitle}</p>
+        {authDisabled ? (
+          <p className="text-xs leading-relaxed text-amber-900/95 dark:text-amber-200/90">
+            Sign-in is paused until Firebase env vars are set — copy{' '}
+            <code className="rounded bg-black/[0.06] px-1 dark:bg-white/10">.env.example</code> to{' '}
+            <code className="rounded bg-black/[0.06] px-1 dark:bg-white/10">.env</code>, fill values, restart{' '}
+            <code className="rounded bg-black/[0.06] px-1 dark:bg-white/10">npm run dev</code>. See{' '}
+            <strong className="font-medium">README</strong>.
+          </p>
+        ) : null}
       </header>
 
       {firebaseReady && error ? (
@@ -284,13 +293,6 @@ export default function MemberAuthCard() {
           </form>
         ) : null}
 
-        {authDisabled && !forgotMode ? (
-          <p className="border-t border-black/5 pt-4 text-center text-xs text-gray-500 dark:border-white/10 dark:text-gray-500">
-            <a href="#auth-setup-support" className="text-purple-700 underline decoration-purple-700/30 underline-offset-2 hover:decoration-purple-700 dark:text-purple-300">
-              Why can’t I sign in?
-            </a>
-          </p>
-        ) : null}
       </div>
     </article>
   )

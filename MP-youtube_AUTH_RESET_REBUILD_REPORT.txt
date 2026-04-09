@@ -19,19 +19,18 @@ This documents a structural reset of the `/auth` experience (not a label-only tw
 2. WHAT WAS REBUILT
 --------------------------------------------------------------------------------
 
-- **`AuthPage.tsx`** — layout orchestration only:
-  - If Firebase is ready: centered **single column** (`max-w-md`) with the member card only.
-  - If not ready: **two-column grid** on large screens (member card + support panel), stacked on small screens.
-  - **Page footer** (outside the card): tertiary “Administrator entry” link to `/admin-access`.
+- **`AuthPage.tsx`** — always centered **single column** (`max-w-md`): `MemberAuthCard` + page footer with
+  “Administrator entry” → `/admin-access`.
 - **`MemberAuthCard.tsx`** — dedicated member experience:
   - Headlines for sign-in, register, and forgot password.
   - Google button, email/password flows, validation, navigation after success.
   - Auth errors from `AuthContext` when Firebase is ready.
   - Disabled controls when `!firebaseReady` with `opacity` + `pointer-events` for intentional inactivity.
-  - When disabled: a single inline link **“Why can’t I sign in?”** → `#auth-setup-support`.
+  - When disabled: **one short line** under the subtitle (README / `.env.example` / restart) — no side panel, no
+    variable list on `/auth`.
 - **`authSchemas.ts`** — `loginSchema`, `registerSchema`, `forgotSchema` and exported types.
-- **`AuthSetupSupportPanel.tsx`** — secondary, dashed-border **“Environment setup”** column used only on `/auth` when
-  configuration is incomplete: short copy, restart / Vercel note, collapsible list of required variable names.
+- **`AuthSetupSupportPanel.tsx`** — **removed** (was the dashed “Environment setup” column); operators still get full
+  detail on `/admin-access` via `FirebaseConfigStatus` when needed.
 
 --------------------------------------------------------------------------------
 3. WHAT WAS SEPARATED
@@ -40,7 +39,7 @@ This documents a structural reset of the `/auth` experience (not a label-only tw
 | Concern              | Where it lives now                                      |
 |---------------------|----------------------------------------------------------|
 | Member sign-in/up   | `MemberAuthCard.tsx` only                               |
-| Firebase / env help | `AuthSetupSupportPanel.tsx` (aside on `/auth` when needed) |
+| Firebase / env help | One-line hint in `MemberAuthCard` when `!firebaseReady`; full list on `/admin-access` only |
 | Admin / operators   | Footer link → `/admin-access`; dashboard still `/admin` for role `admin` |
 | Full operator doc   | `AdminEntryPage` + existing `FirebaseConfigStatus`      |
 
@@ -59,10 +58,9 @@ This documents a structural reset of the `/auth` experience (not a label-only tw
 5. HOW FIREBASE STATUS IS NOW PRESENTED
 --------------------------------------------------------------------------------
 
-- **Not** in the center of the white member card as a dominant block.
-- **Secondary column** (desktop) or **below** the card (mobile) with muted dashed border and smaller typographic scale.
-- Technical variable names hidden behind **`<details>`** to reduce clutter.
-- Dev-only hint about restarting the dev server after `.env` changes.
+- **On `/auth`:** one compact line under the title/subtitle when Firebase is not ready (points to `.env.example`,
+  `.env`, `npm run dev`, README). No `id="auth-setup-support"` block, no variable chip list, no dashed aside panel.
+- **On `/admin-access`:** `FirebaseConfigStatus` still available for operators who need the full missing-key list.
 
 --------------------------------------------------------------------------------
 6. HOW ADMIN ACCESS IS NOW SEPARATED
@@ -87,7 +85,7 @@ are structural: smaller files, explicit boundaries, easier to change member copy
 --------------------------------------------------------------------------------
 
 - All six `VITE_FIREBASE_*` variables must be non-empty for `firebaseReady` (`src/services/firebase.ts`).
-- Until then: member controls stay disabled; support panel explains setup; **no** session or Firestore from the real app.
+- Until then: member controls stay disabled; short inline hint on `/auth`; **no** session or Firestore from the real app.
 - **Google Sign-In** and **email auth** still require Firebase Console (providers, authorized domains) in addition to env.
 - **Production security** still requires Firebase Security Rules (and/or backend) — unchanged by this UI reset.
 
