@@ -1,3 +1,11 @@
+/*
+ * © 2026 Michael Papismedov – MP
+ * All rights reserved.
+ *
+ * This code is proprietary and protected.
+ * Unauthorized use, distribution, or modification is strictly prohibited.
+ */
+
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react'
 import {
   GoogleAuthProvider,

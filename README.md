@@ -1,155 +1,119 @@
-# MP-yout-ube (YouTube-inspired Video Platform)
+# MP-yout-ube
 
-פרויקט דמו מודרני בהשראת YouTube, עם SPA React + TypeScript + React Router ו- Firebase Authentication/Firestore/Storage.
+A modern, scalable web platform for content management, user authentication, and administrative control.
 
-## מצב הפרויקט (בהתאם ל-Phases שלך)
-- **Phase 1 (מוכן ובפועל בקוד):**
-  - Home (Hero + חיפוש + קטגוריות + גריד סרטונים)
-  - Watch (נגן וידאו + פרטי וידאו + Related videos + Comments UI כ-placeholder)
-  - Auth (Login/Register עם Email+Password, Google Login דרך Firebase Auth, ו-Forgot Password)
-  - Upload (העלאת וידאו + Thumbnail ל-Storage + יצירת רשומת וידאו ב-Firestore)
-  - Profile (תצוגת פרטים + סרטוני המשתמש כפי שנשלפים מ-Firestore)
-  - Dashboard (סטטיסטיקות בסיסיות + רשימת סרטונים read-only)
-  - Settings/About/Legal/404 (מסכים קיימים; חלק מהפונקציונליות מופיעה כ-"Phase 2" בהערות UI)
-  - Admin dashboard (מסך קיים; פעולות ממשיות של Phase 3 עדיין deferred)
-- **Phase 2+3:** Favorites/History/Comments פעילים, עריכת/מחיקת וידאו, Moderation, Reports, Categories management — עדיין לא יושמו כפעולות.
+Built with a focus on performance, clean architecture, and professional user experience.
 
-## Tech Stack
-- **Frontend:** React + TypeScript
-- **Routing:** React Router
-- **UI:** Tailwind CSS (v4) עם `@tailwindcss/vite` + `@import "tailwindcss";` בקובץ `src/style.css`
-- **Auth:** Firebase Authentication
-  - Email/Password login/register
-  - Google Login באמצעות `GoogleAuthProvider` (Firebase מודרני, לא Google Sign-In הישן)
-  - Password reset (“forgot password”)
-- **Data:**
-  - Firestore לרשומות `users/videos/categories`
-  - Firebase Storage לקבצי וידאו ו-thumbnail
+## Features
 
-## דרישות מקדימות
-- Node.js (מומלץ Node 18+)
+- **User authentication** — Email / Google via Firebase  
+- **Admin access** — Restricted permissions, separate entry flow  
+- **Responsive UI** — Light, dark, and warm display modes  
+- **Content management** — Videos, categories, profiles, Firestore-backed data  
+- **Local + cloud-ready** — Vite env configuration for development and hosted builds  
+- **Scalable structure** — React + TypeScript, clear layers (pages, context, services)
 
-## התקנה והרצה מקומית
-1. התקן חבילות:
-   ```bash
-   npm install
-   ```
-2. הגדר Firebase (ראה סעיף הבא).
-3. הרצה:
-   ```bash
-   npm run dev
-   ```
-4. פתח בדפדפן:
-   - `http://localhost:5173/`
+## Tech stack
 
-## Build (בדיקת קומפילציה)
+| Area | Technology |
+|------|------------|
+| UI | React, TypeScript, Tailwind CSS (v4) |
+| Build | Vite |
+| Auth & data | Firebase (Authentication, Firestore, Storage) |
+| Routing | React Router |
+| Forms / validation | React Hook Form, Zod |
+
+Theme preference is persisted in **localStorage** via the app theme context.
+
+## Authentication
+
+The project uses **Firebase Authentication**.
+
+**Supported:**
+
+- Email / password sign-in and registration  
+- Google Sign-In (`GoogleAuthProvider` + popup)  
+- Password reset  
+- Role-based access — **guest** / **user** / **admin** (admin emails configured via `VITE_ADMIN_EMAILS`; see `.env.example`)
+
+## Setup
+
+### 1. Clone and install
+
 ```bash
-npm run build
+git clone <your-repo-url>
+cd MP-yout-ube
+npm install
 ```
 
-## הגדרת Firebase (Critical)
-יש ליצור קובץ `.env` בשורש הפרויקט, לפי `/.env.example`.
+### 2. Environment variables
 
-דוגמה לקובץ:
-- `VITE_FIREBASE_API_KEY`
-- `VITE_FIREBASE_AUTH_DOMAIN`
-- `VITE_FIREBASE_PROJECT_ID`
-- `VITE_FIREBASE_STORAGE_BUCKET`
-- `VITE_FIREBASE_MESSAGING_SENDER_ID`
-- `VITE_FIREBASE_APP_ID`
+Create **`.env`** or **`.env.local`** in the project root using **`.env.example`** as a template.
 
-בנוסף:
-- `VITE_ADMIN_EMAILS` — רשימת אימיילים מופרדת בפסיקים שייחשבו כ-`admin` בדמו.
+**Required Firebase Web SDK variables** (all six must be non-empty):
 
-### מה קורה אם ה-Firebase לא מוגדר?
-- `AuthProvider` יציג הודעת שגיאה (“Firebase is not configured yet…”).
-- קריאות לקטגוריות/וידאו מחזירות ברירת מחדל/ריק כדי שלא תתרסק האפליקציה בזמן פיתוח.
+- `VITE_FIREBASE_API_KEY`  
+- `VITE_FIREBASE_AUTH_DOMAIN`  
+- `VITE_FIREBASE_PROJECT_ID`  
+- `VITE_FIREBASE_STORAGE_BUCKET`  
+- `VITE_FIREBASE_MESSAGING_SENDER_ID`  
+- `VITE_FIREBASE_APP_ID`  
 
-## Role System (איך נקבע `guest/user/admin`)
-- **guest**: אין משתמש מחובר
-- **user**: משתמש מחובר שלא מוגדר כ-admin
-- **admin**: המשתמש מוגדר כ-admin אם ה-email שלו נמצא בתוך `VITE_ADMIN_EMAILS`
+**Optional:**
 
-בנוסף קיימת תמיכה ב-`blocked`:
-- אם `users/{uid}.blocked === true`:
-  - המשתמש מסומן כ-Blocked,
-  - מתבצע sign-out,
-  - מוצגת הודעה בממשק.
+- `VITE_ADMIN_EMAILS` — comma-separated emails treated as administrators  
+- `VITE_ADMIN_DISPLAY_NAME` — label for the primary admin in the UI  
 
-## Route Protection (Routes שעבורם יש Guards)
-- `GET /upload` — RequireAuth
-- `GET /profile` — RequireAuth
-- `GET /dashboard` — RequireAuth
-- `GET /settings` — RequireAuth
-- `GET /admin` — RequireRole(`admin`)
+After changing env files, **restart** the dev server (`npm run dev`). On **Vercel** (or similar), set the same variable names and **redeploy** so the build embeds them.
 
-העמוד Home ו-Watch זמינים לכולם (לפי הרשאות צפייה של וידאו):
-- Watch בודק `visibility=hidden`:
-  - מותר לצפות ב-hidden רק אם:
-    - admin, או
-    - המשתמש הוא `ownerId` של הוידאו.
+### 3. Run locally
 
-> חשוב: יש לוודא **Security Rules** ב-Firebase כך שלא יוכלו לקרוא hidden videos ע"י משתמשים שאינם הבעלים (כי הקוד עושה check ב-UI, אבל כל עוד Security Rules לא חוסמים, קיימת אפשרות דליפה).
+```bash
+npm run dev
+```
 
-## Firestore / Storage Contract (מה ה-UI מצפה למצוא)
-### Firestore collections
-1. `users/{uid}`
-   - `email` (string | null)
-   - `name` (string)
-   - `photoURL` (string | null)
-   - `role` (`'guest'|'user'|'admin'` בהתאם לדמו)
-   - `blocked` (boolean)
-   - `createdAt` (timestamp)
+Open [http://localhost:5173](http://localhost:5173).
 
-   שים לב: ב-Login הראשון, אם הרשומה לא קיימת, המערכת יוצרת אותה אוטומטית.
+### 4. Production build
 
-2. `videos/{videoId}`
-   - `ownerId` (string)
-   - `title` (string)
-   - `description` (string)
-   - `categoryId` (string)
-   - `tags` (string[])
-   - `videoUrl` (string)
-   - `thumbnailUrl` (string)
-   - `durationSec` (number)
-   - `views` (number)
-   - `uploadedAt` (number / timestamp במימוש הנוכחי מתקבל כמספר)
-   - `visibility` (`'public'|'hidden'`)
+```bash
+npm run build
+npm run preview   # optional local preview of dist/
+```
 
-3. `categories`
-   - `name` (string)
-   - `slug` (string)
+## System architecture
 
-אם אין categories ב-Firestore, ה-UI משתמש בסט קטגוריות ברירת מחדל (דמו).
+Clear separation of concerns:
 
-### Firebase Storage paths (כפי שהקוד מעלה)
-- thumbnail:
-  - `thumbnails/{ownerId}/{videoId}/{thumbnailFile.name}`
-- video file:
-  - `videos/{ownerId}/{videoId}/{videoFile.name}`
+| Layer | Responsibility |
+|-------|----------------|
+| **UI** | Components, pages, layout |
+| **State & logic** | React context, hooks |
+| **Services** | Firebase (auth, Firestore, Storage), data access |
+| **Config** | Environment variables (`VITE_*`), `adminEnv` helpers |
 
-## מבנה תיקיות (הארגון הקיים בפרויקט)
-- `src/components/` (layout + video + comments placeholders)
-- `src/pages/` (כל עמוד בנפרד: Home/Watch/Auth/Upload/Profile/Dashboard/Settings/About/Legal/Admin/NotFound)
-- `src/context/` (AuthContext)
-- `src/routes/` (Guards)
-- `src/services/` (firebase, videosService, categoriesService)
-- `src/types/` (models טיפוסיים)
-- `src/utils/` (helpers כגון formatDuration/extractTags)
-- `assets/` (תיקיית assets ברמת root)
+## Admin access
 
-## Responsiveness (מובייל/טאבלט) — YouTube-like
-- Header כולל:
-  - Logo משמאל
-  - Home / Search / Upload / About
-  - Login/Register או Profile + Dashboard + Logout בהתאם למצב Auth
-- במובייל:
-  - מופיע hamburger עם drawer צד (overlay) נקי, מהיר ואינטואיטיבי.
-  - אותו סט פריטים מופיע בדראואר כדי לשמור על עקביות UX.
+Administrator access is **restricted** and **separated** from regular members. Only designated accounts receive elevated permissions after authentication. Client-side route guards improve UX; **Firebase Security Rules** (and/or a trusted backend) are required for production-grade enforcement.
 
-## הערות Phase 2/3 (מה עדיין חסר בקוד)
-- Favorites + Watch history: עדיין Phase 2
-- Comments פעילים: עדיין Phase 2 (כרגע רק Placeholder בעמוד Watch)
-- עריכת/מחיקת סרטונים + toggle visibility: עדיין Phase 2/3
-- Admin: user management, video moderation, reports, categories management — Phase 3
+## Project status
 
+Actively developed with focus on:
+
+- UX refinement  
+- Performance and bundle hygiene  
+- Admin capabilities  
+- Production readiness (including Security Rules and deployment configuration)
+
+## Author
+
+**Michael Papismedov – MP**  
+
+Independent developer focused on building modern, scalable, and high-quality web systems.
+
+## License & copyright
+
+© 2026 **Michael Papismedov – MP**  
+All rights reserved.
+
+This project and its code are protected. Unauthorized use, copying, or distribution without permission is not allowed.

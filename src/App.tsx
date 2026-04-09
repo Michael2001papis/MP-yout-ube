@@ -1,3 +1,11 @@
+/*
+ * © 2026 Michael Papismedov – MP
+ * All rights reserved.
+ *
+ * This code is proprietary and protected.
+ * Unauthorized use, distribution, or modification is strictly prohibited.
+ */
+
 import { lazy, Suspense } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
 
