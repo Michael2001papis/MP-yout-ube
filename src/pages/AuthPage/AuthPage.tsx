@@ -32,8 +32,29 @@ type LoginForm = z.infer<typeof loginSchema>
 type RegisterForm = z.infer<typeof registerSchema>
 type ForgotForm = z.infer<typeof forgotSchema>
 
+function AdminAccessShieldIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden>
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285Z"
+      />
+    </svg>
+  )
+}
+
 export default function AuthPage() {
-  const { loginWithEmail, registerWithEmail, loginWithGoogle, resetPassword, error, firebaseReady } = useAuth()
+  const {
+    loginWithEmail,
+    registerWithEmail,
+    loginWithGoogle,
+    resetPassword,
+    error,
+    firebaseReady,
+    user,
+    role,
+  } = useAuth()
   const [searchParams] = useSearchParams()
   const mode = searchParams.get('mode') === 'register' ? 'register' : 'login'
 
@@ -318,6 +339,48 @@ export default function AuthPage() {
             </form>
           ) : null}
         </div>
+
+        {!forgotMode ? (
+          <div className="mt-8 border-t border-black/10 pt-6 dark:border-white/10">
+            <div className="rounded-xl border border-purple-200/70 bg-gradient-to-b from-purple-50/90 to-white/40 px-4 py-4 dark:border-purple-900/35 dark:from-purple-950/25 dark:to-gray-950/20">
+              <div className="flex gap-3 sm:gap-4">
+                <div
+                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-purple-100 text-purple-700 dark:bg-purple-950/70 dark:text-purple-300"
+                  aria-hidden
+                >
+                  <AdminAccessShieldIcon className="h-5 w-5" />
+                </div>
+                <div className="min-w-0 flex-1 space-y-2">
+                  <div>
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-purple-800/90 dark:text-purple-200/95">
+                      System administrator
+                    </p>
+                    <p className="mt-1.5 text-xs leading-relaxed text-gray-600 dark:text-gray-400">
+                      Restricted entry for authorized staff. Same Firebase sign-in as members; elevated access is applied
+                      only to designated accounts after authentication.
+                    </p>
+                  </div>
+                  {firebaseReady && role === 'admin' && user ? (
+                    <Link
+                      to="/admin"
+                      className="flex w-full items-center justify-center rounded-lg border border-purple-400/40 bg-purple-600/95 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-purple-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple-500 dark:border-purple-400/20 dark:hover:bg-purple-600"
+                    >
+                      Open admin dashboard
+                    </Link>
+                  ) : (
+                    <Link
+                      to="/admin-access"
+                      state={{ from: '/auth' }}
+                      className="flex w-full items-center justify-center rounded-lg border border-purple-300/60 bg-white/80 px-4 py-2.5 text-sm font-medium text-purple-950 shadow-sm transition hover:border-purple-400 hover:bg-purple-50/90 dark:border-purple-700/50 dark:bg-gray-900/40 dark:text-purple-100 dark:hover:border-purple-500/60 dark:hover:bg-purple-950/35"
+                    >
+                      Admin access
+                    </Link>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : null}
       </div>
     </div>
   )
