@@ -20,6 +20,13 @@ import {
   uploadBytesResumable,
 } from 'firebase/storage'
 
+import {
+  getDemoVideoById,
+  isDemoVideoId,
+  listDemoVideosForFeed,
+  listRelatedDemos,
+  searchDemoVideos,
+} from '../data/demoVideos'
 import { db, storage, firebaseReady } from './firebase'
 import type { Video, VideoVisibility } from '../types/Video'
 
@@ -60,12 +67,27 @@ export async function fetchPublicVideos(options?: {
   categoryId?: string
   limitCount?: number
 }): Promise<Video[]> {
-  if (!firebaseReady) return []
-  const whereClauses: any[] = [where('visibility', '==', 'public')]
-  if (options?.categoryId) {
-    whereClauses.push(where('categoryId', '==', options.categoryId))
+  const limit = options?.limitCount ?? 24
+  const categoryId = options?.categoryId
+
+  if (!firebaseReady) {
+    return listDemoVideosForFeed(categoryId, limit)
   }
-  return getVideosBase(whereClauses, options?.limitCount ?? 24)
+
+  const whereClauses: any[] = [where('visibility', '==', 'public')]
+  if (categoryId) {
+    whereClauses.push(where('categoryId', '==', categoryId))
+  }
+
+  let live: Video[] = []
+  try {
+    live = await getVideosBase(whereClauses, limit)
+  } catch {
+    live = []
+  }
+
+  if (live.length > 0) return live
+  return listDemoVideosForFeed(categoryId, limit)
 }
 
 export async function searchVideosLocally(options: {
@@ -73,12 +95,18 @@ export async function searchVideosLocally(options: {
   categoryId?: string
   limitCount?: number
 }): Promise<Video[]> {
-  if (!firebaseReady) return []
+  const limit = options.limitCount ?? 24
   const q = options.query.trim().toLowerCase()
-  if (!q) return fetchPublicVideos({ categoryId: options.categoryId, limitCount: options.limitCount ?? 24 })
+  const categoryId = options.categoryId
+
+  if (!firebaseReady) {
+    return searchDemoVideos(options.query, categoryId, limit)
+  }
+
+  if (!q) return fetchPublicVideos({ categoryId, limitCount: limit })
 
   // Simple Phase 1 search: fetch a chunk of recent public videos, filter on client.
-  const candidates = await fetchPublicVideos({ categoryId: options.categoryId, limitCount: (options.limitCount ?? 24) * 3 })
+  const candidates = await fetchPublicVideos({ categoryId, limitCount: limit * 3 })
 
   const tokens = q.split(/\s+/g).filter(Boolean)
   return candidates.filter((v) => {
@@ -91,6 +119,9 @@ export async function searchVideosLocally(options: {
 // this function does not filter by visibility — WatchPage applies UI checks after fetch.
 
 export async function fetchVideoById(videoId: string): Promise<Video | null> {
+  if (isDemoVideoId(videoId)) {
+    return getDemoVideoById(videoId)
+  }
   if (!firebaseReady) return null
   const ref = doc(db, 'videos', videoId)
   const snap = await getDoc(ref)
@@ -109,7 +140,7 @@ export async function fetchUserVideos(ownerId: string): Promise<Video[]> {
 }
 
 export async function incrementViews(videoId: string): Promise<void> {
-  if (!firebaseReady) return
+  if (isDemoVideoId(videoId) || !firebaseReady) return
   const ref = doc(db, 'videos', videoId)
   await updateDoc(ref, { views: increment(1) })
 }
@@ -155,14 +186,27 @@ export async function fetchRelatedVideos(options: {
   excludeVideoId: string
   limitCount?: number
 }): Promise<Video[]> {
-  if (!firebaseReady) return []
   const max = options.limitCount ?? 8
-  const clauses: any[] = [where('visibility', '==', 'public')]
-  if (options.categoryId) clauses.push(where('categoryId', '==', options.categoryId))
+  const exclude = options.excludeVideoId
+  const categoryId = options.categoryId
 
-  // Phase 1: take a candidate set and filter out the current video.
-  const candidates = await getVideosBase(clauses, max * 2)
-  return candidates.filter((v) => v.id !== options.excludeVideoId).slice(0, max)
+  if (!firebaseReady) {
+    return listRelatedDemos(categoryId, exclude, max)
+  }
+
+  const clauses: any[] = [where('visibility', '==', 'public')]
+  if (categoryId) clauses.push(where('categoryId', '==', categoryId))
+
+  let candidates: Video[] = []
+  try {
+    candidates = await getVideosBase(clauses, max * 2)
+  } catch {
+    candidates = []
+  }
+
+  const filtered = candidates.filter((v) => v.id !== exclude)
+  if (filtered.length > 0) return filtered.slice(0, max)
+  return listRelatedDemos(categoryId, exclude, max)
 }
 
 async function uploadToStorage(args: {

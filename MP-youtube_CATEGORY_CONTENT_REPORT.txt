@@ -1,0 +1,109 @@
+================================================================================
+MP-yout-ube — CATEGORY & CONTENT VISIBILITY REPORT
+Date: 2026-04-09
+================================================================================
+
+--------------------------------------------------------------------------------
+1. ROOT CAUSE (WHAT WAS WRONG)
+--------------------------------------------------------------------------------
+
+A. No data path
+   • When Firebase was not configured, `fetchPublicVideos` returned an empty
+     array — every category (including All) showed zero videos.
+   • When Firebase was configured but the `videos` collection was empty or
+     queries failed (e.g. missing index), results were also empty with no
+     fallback.
+
+B. Category ID mismatch (Firestore)
+   • Default UI categories use stable IDs: `cat_music`, `cat_education`,
+     `cat_gaming`, `cat_sports`.
+   • Firestore `categories` documents often use auto-generated document IDs.
+     Videos uploaded with that ID did not match demo `categoryId` values, and
+     filtering by category could return nothing even when slugs matched by name.
+
+C. Empty state copy
+   • A single generic “No videos match your filters” line did not explain
+     category vs search vs “no backend data” behavior.
+
+--------------------------------------------------------------------------------
+2. WHAT WAS FIXED (CODE)
+--------------------------------------------------------------------------------
+
+  • `src/data/demoVideos.ts` (NEW)
+      - Four public sample videos (Google GTV sample bucket) mapped one-to-one
+        to default category IDs (`cat_music` … `cat_sports`).
+      - IDs use prefix `demo-` so services can treat them without Firestore.
+
+  • `src/services/videosService.ts`
+      - `fetchPublicVideos`: If Firebase is off OR live query returns no rows OR
+        query throws → fall back to demo list filtered by `categoryId` (or All).
+      - `fetchVideoById`: Resolves `demo-*` IDs to local demo records (Watch works
+        without a Firestore document).
+      - `incrementViews`: Skips Firestore for `demo-*` IDs.
+      - `fetchRelatedVideos`: Falls back to demo related list when live list empty.
+      - `searchVideosLocally`: When Firebase is off, searches demo metadata; when
+        Firebase is on, behavior unchanged (live + client filter).
+
+  • `src/services/categoriesService.ts`
+      - After loading Firestore categories, merges with defaults: known slugs
+        (`music`, `education`, `gaming`, `sports`) use the **same stable IDs**
+        as defaults so filters align with demo rows and typical uploads.
+      - Ensures all four defaults appear if missing from Firestore.
+      - Dedupes by slug to avoid duplicate React keys.
+
+  • `src/pages/HomePage/HomePage.tsx`
+      - Short notice when any visible row is a demo clip (sample browsing).
+      - Richer empty state: names active category + suggests All / other
+        category / clearing search.
+
+--------------------------------------------------------------------------------
+3. WHICH CATEGORIES “WORK” NOW
+--------------------------------------------------------------------------------
+
+  • **All** — Shows all four demo clips (when no real public videos win the feed).
+  • **Music** — `demo-for-bigger-blazes` (short sample).
+  • **Education** — `demo-big-buck-bunny`.
+  • **Gaming** — `demo-sintel`.
+  • **Sports** — `demo-elephants-dream`.
+
+When real Firestore videos exist for a category, those are shown first; demos
+appear only when the live query returns zero rows for that filter (or Firebase
+is unavailable).
+
+--------------------------------------------------------------------------------
+4. FALLBACK / DEMO CONTENT — WAS IT NEEDED?
+--------------------------------------------------------------------------------
+
+YES. Without seed data or demos, draft/local runs looked “broken” with an empty
+grid. Demo clips are clearly labeled in the UI and use only known public sample
+URLs — not random placeholders.
+
+--------------------------------------------------------------------------------
+5. WHAT STILL NEEDS ATTENTION (NOT IN THIS CHANGE)
+--------------------------------------------------------------------------------
+
+  • Firestore composite indexes: if `visibility + categoryId + uploadedAt`
+    queries fail in production, the catch path falls back to demos — fix indexes
+    for real data at scale.
+  • Custom categories (e.g. slug `vlogs`) have no demo mapping — empty until
+    users upload; empty-state copy still applies.
+  • Comments/favorites on demo videos still require Firebase rules + config for
+    writes.
+
+--------------------------------------------------------------------------------
+6. VISUAL VS FUNCTIONAL
+--------------------------------------------------------------------------------
+
+  • **Functional:** Category buttons update URL `?category=<id>`, refetch runs,
+    grid lists filtered demo or live videos; Watch opens for `demo-*` IDs.
+  • **Visual:** Same layout as before; only added helper text (no redesign).
+
+--------------------------------------------------------------------------------
+7. STABILITY NOTE
+--------------------------------------------------------------------------------
+
+  • `npm run build` (tsc + vite) passes after changes.
+
+================================================================================
+END OF REPORT
+================================================================================

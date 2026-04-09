@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useSearchParams } from 'react-router-dom'
 
+import { DEMO_VIDEO_ID_PREFIX } from '../../data/demoVideos'
 import { fetchCategories } from '../../services/categoriesService'
 import { fetchPublicVideos, searchVideosLocally } from '../../services/videosService'
 import type { Category } from '../../types/Category'
@@ -43,6 +44,17 @@ export default function HomePage() {
   }, [initialQ])
 
   const visibleCategoryId = useMemo(() => categoryId, [categoryId])
+
+  const showDemoNotice = useMemo(
+    () => videos.some((v) => v.id.startsWith(DEMO_VIDEO_ID_PREFIX)),
+    [videos],
+  )
+
+  const activeCategoryLabel = useMemo(() => {
+    if (!visibleCategoryId) return 'All categories'
+    const c = categories.find((x) => x.id === visibleCategoryId)
+    return c?.name ?? 'This category'
+  }, [categories, visibleCategoryId])
 
   useEffect(() => {
     let cancelled = false
@@ -182,8 +194,15 @@ export default function HomePage() {
           </div>
 
           <section className="mt-6">
-            <div className="flex items-center justify-between gap-4">
-              <h2 className="text-lg font-semibold">Recommended / Local</h2>
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div>
+                <h2 className="text-lg font-semibold">Recommended / Local</h2>
+                {showDemoNotice ? (
+                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    Showing sample clips for browsing. Upload your own after Firebase is configured.
+                  </p>
+                ) : null}
+              </div>
               <div className="text-sm text-gray-500">{loading ? 'Loading...' : `${videos.length} videos`}</div>
             </div>
 
@@ -195,7 +214,17 @@ export default function HomePage() {
               </div>
             ) : videos.length === 0 ? (
               <div className="mt-8 rounded-xl border border-black/10 bg-white p-4 text-sm text-gray-600 dark:border-white/10 dark:bg-gray-900/20 dark:text-gray-200">
-                No videos match your filters.
+                <p className="font-medium text-gray-800 dark:text-gray-100">No videos here yet</p>
+                <p className="mt-2 leading-relaxed">
+                  Nothing matches <span className="font-medium">{activeCategoryLabel}</span>
+                  {query ? (
+                    <>
+                      {' '}
+                      with search &quot;{query}&quot;
+                    </>
+                  ) : null}
+                  . Try <span className="font-medium">All</span>, pick another category, or clear the search box.
+                </p>
               </div>
             ) : (
               <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
