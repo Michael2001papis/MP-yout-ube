@@ -103,13 +103,17 @@ export default function AuthPage() {
         </p>
 
         {!firebaseReady ? (
-          <div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800 dark:border-red-900/50 dark:bg-red-900/10 dark:text-red-200">
-            Firebase לא מוגדר עדיין.
-            <div className="mt-2 text-xs leading-relaxed text-red-900/70 dark:text-red-200/80">
-              חסרים אצלך ערכים: <code>{missingFirebaseEnv.join(', ') || 'VITE_FIREBASE_*'}</code>
-              <br />
-              צור קובץ <code>.env</code> בשורש הפרויקט לפי <code>.env.example</code>, מלא ערכים נכונים, ורענן/הפעל מחדש את ה-dev server.
-            </div>
+          <div className="mt-4 rounded-lg border border-black/10 bg-black/[0.03] p-3 text-sm text-gray-700 dark:border-white/10 dark:bg-white/[0.06] dark:text-gray-200">
+            <div className="font-medium text-gray-900 dark:text-gray-100">חיבור ל-Firebase</div>
+            <p className="mt-1.5 text-xs leading-relaxed text-gray-600 dark:text-gray-400">
+              כדי להתחבר ולהעלות תוכן, הוסף קובץ <code className="rounded bg-black/5 px-1 py-0.5 dark:bg-white/10">.env</code> לפי{' '}
+              <code className="rounded bg-black/5 px-1 py-0.5 dark:bg-white/10">.env.example</code>, הפעל מחדש את השרת, ואז נסה שוב.
+            </p>
+            {missingFirebaseEnv.length > 0 ? (
+              <p className="mt-2 text-xs text-gray-500 dark:text-gray-500">
+                משתנים חסרים: {missingFirebaseEnv.join(', ')}
+              </p>
+            ) : null}
           </div>
         ) : error ? (
           <div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800 dark:border-red-900/50 dark:bg-red-900/10 dark:text-red-200">

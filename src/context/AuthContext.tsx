@@ -121,7 +121,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     setLoading(true)
     if (!firebaseReady) {
-      setError('Firebase is not configured yet. Add VITE_FIREBASE_* env vars to your .env file.')
+      // Missing env: do not set global `error` — Layout would show a red banner on every page.
+      // AuthPage explains setup when the user opens /auth.
+      setError(null)
       setUser(null)
       setRole('guest')
       setBlocked(false)

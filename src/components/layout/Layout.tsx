@@ -4,12 +4,12 @@ import Header from './Header'
 import { useAuth } from '../../context/AuthContext'
 
 export default function Layout() {
-  const { loading, error } = useAuth()
+  const { loading, error, firebaseReady } = useAuth()
 
   return (
     <div className="min-h-dvh bg-[var(--bg)] text-[var(--text)]">
       <Header />
-      {error ? (
+      {error && firebaseReady ? (
         <div className="mx-auto max-w-6xl px-4 pt-4">
           <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800 dark:border-red-900/50 dark:bg-red-900/10 dark:text-red-200">
             {error}
