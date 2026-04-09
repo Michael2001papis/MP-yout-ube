@@ -33,7 +33,7 @@ type RegisterForm = z.infer<typeof registerSchema>
 type ForgotForm = z.infer<typeof forgotSchema>
 
 export default function AuthPage() {
-  const { loginWithEmail, registerWithEmail, loginWithGoogle, resetPassword, error, loading, firebaseReady } = useAuth()
+  const { loginWithEmail, registerWithEmail, loginWithGoogle, resetPassword, error, firebaseReady } = useAuth()
   const [searchParams] = useSearchParams()
   const mode = searchParams.get('mode') === 'register' ? 'register' : 'login'
 
@@ -45,6 +45,7 @@ export default function AuthPage() {
   }, [location.state])
 
   const [forgotMode, setForgotMode] = useState(false)
+  const [googleBusy, setGoogleBusy] = useState(false)
 
   const {
     register,
@@ -128,16 +129,20 @@ export default function AuthPage() {
                 type="button"
                 onClick={async () => {
                   try {
+                    setGoogleBusy(true)
                     await loginWithGoogle()
                     navigate(fromPath, { replace: true })
                   } catch {
                     // error is shown by AuthContext
+                  } finally {
+                    setGoogleBusy(false)
                   }
                 }}
-                disabled={loading || !firebaseReady}
+                disabled={!firebaseReady || googleBusy}
+                aria-busy={googleBusy}
                 className="w-full rounded-lg border border-black/10 bg-white px-4 py-2 text-sm font-medium hover:bg-gray-50 disabled:opacity-60 dark:border-white/10 dark:bg-gray-900/30 dark:hover:bg-gray-900/50"
               >
-                Continue with Google
+                {googleBusy ? 'Connecting to Google…' : 'Continue with Google'}
               </button>
 
               <div className="flex items-center gap-3 text-xs text-gray-500">

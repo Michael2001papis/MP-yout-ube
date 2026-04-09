@@ -44,6 +44,29 @@ function errorToMessage(e: unknown): string {
   return 'Something went wrong. Please try again.'
 }
 
+/** Firebase Auth uses `code` on error objects; map to clearer UX copy. */
+function firebaseAuthErrorMessage(e: unknown): string {
+  if (e && typeof e === 'object' && 'code' in e) {
+    const code = String((e as { code?: string }).code)
+    switch (code) {
+      case 'auth/popup-closed-by-user':
+      case 'auth/cancelled-popup-request':
+        return 'Sign-in was cancelled. Try again if you want to continue with Google.'
+      case 'auth/popup-blocked':
+        return 'The browser blocked the Google popup. Allow popups for this site and try again.'
+      case 'auth/network-request-failed':
+        return 'Network error. Check your connection and try again.'
+      case 'auth/operation-not-allowed':
+        return 'Google sign-in is not enabled for this Firebase project. Enable it in Firebase Console → Authentication → Sign-in method.'
+      case 'auth/unauthorized-domain':
+        return 'This domain is not authorized for OAuth. Add it under Firebase Console → Authentication → Settings → Authorized domains.'
+      default:
+        break
+    }
+  }
+  return errorToMessage(e)
+}
+
 // SECURITY: Admin emails are baked into the client bundle via VITE_ADMIN_EMAILS — visible in shipped JS.
 // Treat as UX routing hints only; enforce privileged operations in Firebase Security Rules.
 
@@ -193,7 +216,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         try {
           await signInWithEmailAndPassword(auth, email, password)
         } catch (e) {
-          const msg = errorToMessage(e)
+          const msg = firebaseAuthErrorMessage(e)
           setError(msg)
           // eslint-disable-next-line no-console
           console.error('[Auth] loginWithEmail failed', e)
@@ -210,7 +233,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             await updateProfile(cred.user, { displayName: name })
           }
         } catch (e) {
-          const msg = errorToMessage(e)
+          const msg = firebaseAuthErrorMessage(e)
           setError(msg)
           // eslint-disable-next-line no-console
           console.error('[Auth] registerWithEmail failed', e)
@@ -222,9 +245,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setError(null)
         try {
           const provider = new GoogleAuthProvider()
+          provider.setCustomParameters({ prompt: 'select_account' })
           await signInWithPopup(auth, provider)
         } catch (e) {
-          const msg = errorToMessage(e)
+          const msg = firebaseAuthErrorMessage(e)
           setError(msg)
           // eslint-disable-next-line no-console
           console.error('[Auth] loginWithGoogle failed', e)
@@ -237,7 +261,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         try {
           await sendPasswordResetEmail(auth, email)
         } catch (e) {
-          const msg = errorToMessage(e)
+          const msg = firebaseAuthErrorMessage(e)
           setError(msg)
           // eslint-disable-next-line no-console
           console.error('[Auth] resetPassword failed', e)
@@ -250,7 +274,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         try {
           await signOut(auth)
         } catch (e) {
-          const msg = errorToMessage(e)
+          const msg = firebaseAuthErrorMessage(e)
           setError(msg)
           // eslint-disable-next-line no-console
           console.error('[Auth] logout failed', e)
