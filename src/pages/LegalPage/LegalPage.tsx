@@ -21,8 +21,8 @@ export default function LegalPage() {
           This is placeholder legal content for the demo. Replace it with your real policies before production.
         </p>
         <p>
-          The platform includes user roles (guest/user/admin), authentication (email/password + Google via Firebase),
-          and role-based route protection.
+          The platform supports guests and signed-in members, authentication (email/password + Google via Firebase),
+          and protected routes for personal areas.
         </p>
       </div>
     </div>

@@ -4,7 +4,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 
 export default function Header() {
-  const { user, logout, role } = useAuth()
+  const { user, logout } = useAuth()
   const location = useLocation()
   const navigate = useNavigate()
   const [busy, setBusy] = useState(false)
@@ -73,11 +73,6 @@ export default function Header() {
               <Link to="/settings" className="text-sm font-medium">
                 Settings
               </Link>
-              {role === 'admin' ? (
-                <Link to="/admin" className="text-sm font-medium text-purple-700 dark:text-purple-300">
-                  Admin
-                </Link>
-              ) : null}
               <button
                 type="button"
                 onClick={onLogout}
@@ -200,15 +195,6 @@ export default function Header() {
                   >
                     Settings
                   </Link>
-                  {role === 'admin' ? (
-                    <Link
-                      to="/admin"
-                      onClick={() => setMenuOpen(false)}
-                      className="rounded-lg px-3 py-2 text-sm font-medium text-purple-700 hover:bg-purple-50 dark:text-purple-300 dark:hover:bg-purple-950/30"
-                    >
-                      Admin
-                    </Link>
-                  ) : null}
                   <button
                     type="button"
                     onClick={async () => {

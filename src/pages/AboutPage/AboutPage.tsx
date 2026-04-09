@@ -24,7 +24,7 @@ export default function AboutPage() {
           <ul className="mt-2 list-inside list-disc space-y-1.5 text-sm leading-relaxed text-gray-700 dark:text-gray-300">
             <li>Clean and intuitive interface</li>
             <li>Secure authentication system</li>
-            <li>Separation between user and administrator roles</li>
+            <li>Clear distinction between guests and signed-in members</li>
             <li>Continuous improvement and optimization</li>
           </ul>
         </div>

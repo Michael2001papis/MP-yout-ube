@@ -7,9 +7,6 @@ interface ImportMetaEnv {
   readonly VITE_FIREBASE_STORAGE_BUCKET?: string
   readonly VITE_FIREBASE_MESSAGING_SENDER_ID?: string
   readonly VITE_FIREBASE_APP_ID?: string
-  readonly VITE_ADMIN_EMAILS?: string
-  /** Public display label for the primary admin (e.g. MIKI). Not a password. */
-  readonly VITE_ADMIN_DISPLAY_NAME?: string
 }
 
 interface ImportMeta {

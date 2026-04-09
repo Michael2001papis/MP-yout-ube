@@ -12,7 +12,7 @@ import { upsertWatchHistory } from '../../services/watchHistoryService'
 
 export default function WatchPage() {
   const { videoId } = useParams()
-  const { user, role } = useAuth()
+  const { user } = useAuth()
 
   const [loading, setLoading] = useState(true)
   const [video, setVideo] = useState<Video | null>(null)
@@ -45,7 +45,7 @@ export default function WatchPage() {
 
       // SECURITY: Visibility is enforced here for UX only. Anyone with direct Firestore read access
       // to this document could still obtain hidden metadata unless Security Rules deny reads.
-      const canViewHidden = role === 'admin' || (user && user.uid === v.ownerId)
+      const canViewHidden = user && user.uid === v.ownerId
       if (v.visibility === 'hidden' && !canViewHidden) {
         setVideo(null)
         setError('This video is not available.')
@@ -79,7 +79,7 @@ export default function WatchPage() {
     return () => {
       cancelled = true
     }
-  }, [role, user, videoId])
+  }, [user, videoId])
 
   const uploadedDate = useMemo(() => (video ? new Date(video.uploadedAt).toLocaleDateString() : ''), [video])
 

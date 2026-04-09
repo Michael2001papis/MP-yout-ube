@@ -1,13 +1,12 @@
 # MP-yout-ube
 
-A modern, scalable web platform for content management, user authentication, and administrative control.
+A modern, scalable web platform for content management and user authentication.
 
 Built with a focus on performance, clean architecture, and professional user experience.
 
 ## Features
 
 - **User authentication** — Email / Google via Firebase  
-- **Admin access** — Restricted permissions, separate entry flow  
 - **Responsive UI** — Light, dark, and warm display modes  
 - **Content management** — Videos, categories, profiles, Firestore-backed data  
 - **Local + cloud-ready** — Vite env configuration for development and hosted builds  
@@ -34,7 +33,7 @@ The project uses **Firebase Authentication**.
 - Email / password sign-in and registration  
 - Google Sign-In (`GoogleAuthProvider` + popup)  
 - Password reset  
-- Role-based access — **guest** / **user** / **admin** (admin emails configured via `VITE_ADMIN_EMAILS`; see `.env.example`)
+- **Guest** vs **signed-in member** — protected routes for profile, upload, dashboard, settings  
 
 ## Setup
 
@@ -59,11 +58,6 @@ Create **`.env`** or **`.env.local`** in the project root using **`.env.example`
 - `VITE_FIREBASE_MESSAGING_SENDER_ID`  
 - `VITE_FIREBASE_APP_ID`  
 
-**Optional:**
-
-- `VITE_ADMIN_EMAILS` — comma-separated emails treated as administrators  
-- `VITE_ADMIN_DISPLAY_NAME` — label for the primary admin in the UI  
-
 After changing env files, **restart** the dev server (`npm run dev`). On **Vercel** (or similar), set the same variable names and **redeploy** so the build embeds them.
 
 ### 3. Run locally
@@ -83,27 +77,20 @@ npm run preview   # optional local preview of dist/
 
 ## System architecture
 
-Clear separation of concerns:
-
 | Layer | Responsibility |
 |-------|----------------|
 | **UI** | Components, pages, layout |
 | **State & logic** | React context, hooks |
 | **Services** | Firebase (auth, Firestore, Storage), data access |
-| **Config** | Environment variables (`VITE_*`), `adminEnv` helpers |
+| **Config** | Environment variables (`VITE_*`) |
 
-## Admin access
+## Security
 
-Administrator access is **restricted** and **separated** from regular members. Only designated accounts receive elevated permissions after authentication. Client-side route guards improve UX; **Firebase Security Rules** (and/or a trusted backend) are required for production-grade enforcement.
+Use **Firebase Security Rules** (and/or a trusted backend) to protect Firestore and Storage. Client-side route guards only improve UX.
 
 ## Project status
 
-Actively developed with focus on:
-
-- UX refinement  
-- Performance and bundle hygiene  
-- Admin capabilities  
-- Production readiness (including Security Rules and deployment configuration)
+Actively developed with focus on UX, performance, and production readiness.
 
 ## Author
 

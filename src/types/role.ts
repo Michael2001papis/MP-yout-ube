@@ -1,2 +1,2 @@
-export type AppRole = 'guest' | 'user' | 'admin'
+export type AppRole = 'guest' | 'user'
 
