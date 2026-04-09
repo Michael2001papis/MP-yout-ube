@@ -1,0 +1,662 @@
+MP-yout-ube — POST-CHANGE COMPARATIVE AUDIT
+===========================================
+Audit date basis: current repository state after recent work (admin flow, Firebase/env documentation,
+Auth page staff section, AdminEntryPage messaging, deleted TXT report artifacts).
+Method: direct inspection of source files (no runtime E2E). “Previous audit concerns” refers to issues
+listed in the audit brief (Firebase readiness, Google Sign-In gating, categories/content, admin access,
+layout/CSS, documentation drift, auth loading, Security Rules gaps, demo content, discoverability).
+
+================================================================================
+1. EXECUTIVE SUMMARY
+================================================================================
+
+Current condition:
+- The SPA is a coherent React 19 + Vite 8 + Tailwind v4 stack with Firebase Auth/Firestore/Storage
+  integration behind a strict six-variable `firebaseReady` gate (`src/services/firebase.ts`).
+- Browse and watch flows remain usable without Firebase via curated demo videos (`src/data/demoVideos.ts`)
+  and default categories (`src/services/categoriesService.ts`).
+- Authentication and all Firestore-backed mutations require valid `VITE_FIREBASE_*` values at build/dev time.
+- Admin UX has been expanded: dedicated routes, guards, Auth card staff zone, Header link for admins,
+  and richer missing-env guidance on `/admin-access`.
+
+Meaningful improvement vs earlier concerns:
+- **Yes, functionally and structurally** for admin entry, route denial messaging, env documentation in
+  `.env.example`, and discoverability of staff paths.
+- **Partially** for “production trust”: client-side security posture is unchanged in substance (still
+  Rules-dependent); UI is more honest and navigable.
+
+Stability vs before:
+- Build pipeline remains `tsc && vite build` (no new tooling). No evidence of new crash paths in static
+  review; `firebaseReady` guards prevent null `auth`/`db` use in services.
+
+Nature of changes:
+- **Mixed:** UX/copy/structure (admin entry, guards, Auth layout) are substantive; Firebase security model
+  is **not** upgraded—still SPA + env-based admin hints.
+
+================================================================================
+2. CHANGE OVERVIEW (INFERRED VS PRIOR AUDIT CONCERNS)
+================================================================================
+
+What appears to have changed (evidence-based):
+- **Admin access:** New or refined flows — `/admin-access` (`AdminEntryPage`), `/admin` behind
+  `RequireRole(['admin'])`, Header “Admin” for `role === 'admin'`, Auth page “System administrator” block
+  linking to `/admin-access` or `/admin` when already admin (`src/pages/AuthPage/AuthPage.tsx`,
+  `src/App.tsx`, `src/components/layout/Header.tsx`, `src/routes/guards.tsx`).
+- **Firebase messaging:** `AdminEntryPage` lists `missingFirebaseEnv` and Hebrew operational instructions;
+  `.env.example` documents Vite build-time behavior and Vercel redeploy requirement.
+- **Removed artifacts:** Prior session TXT reports (`MP-youtube_*.txt`) are **not present** in the repo
+  now (user-requested deletion); documentation responsibility shifts back to README + `.env.example`.
+
+Improved most:
+- Admin **discoverability** and **denied-access clarity** (guards copy, staff landing page).
+- **Env setup clarity** for developers/operators (`.env.example`, AdminEntryPage).
+
+Still unfinished:
+- **Firebase Security Rules** enforcement (still external to this repo).
+- **README accuracy** vs implemented features (comments/favorites/history are implemented when Firebase
+  exists; README still frames some as future-only—see §18).
+- **Global auth loading gate** still blanks all Layout content while `loading` is true when Firebase is
+  configured (unchanged tradeoff).
+
+Immediate attention:
+- Deployments without six `VITE_FIREBASE_*` vars: Google/email auth stay disabled; staff see amber banner.
+- Align README with code or risk mis-set expectations in client/stakeholder reviews.
+
+================================================================================
+3. SYSTEM STATE COMPARISON (MARKED)
+================================================================================
+
+Legend per line: [Fixed | Partially Fixed | Not Fixed | Regressed | Unchanged]
+
+Firebase readiness
+- Previously: risk of unclear failure when env missing.
+- Now: `firebaseReady` + `missingFirebaseEnv` + targeted UI on `/auth` and `/admin-access`.
+- Mark: **Partially Fixed** (clearer ops path; root cause still “must configure env”).
+
+Google authentication
+- Previously: disabled when env missing.
+- Now: same dependency; better user-facing explanation on Auth and Admin entry.
+- Mark: **Partially Fixed** (UX/documentation), **Unchanged** (technical requirement).
+
+Local runtime readiness
+- Previously: needed `.env` + restart.
+- Now: same; `.env.example` explicitly states restart and Vite behavior.
+- Mark: **Partially Fixed** (documentation), **Unchanged** (workflow).
+
+Vercel / deployment readiness
+- Previously: risk of deploy without env → broken auth.
+- Now: `.env.example` states Vercel env + redeploy; no `vercel.json` automation added.
+- Mark: **Partially Fixed** (documentation only).
+
+Category / content behavior
+- Previously: defaults + demo when empty / no Firebase.
+- Now: same architecture (`fetchCategories`, `fetchPublicVideos` → demos if empty or no Firebase).
+- Mark: **Unchanged** (still strong for demos; Firestore category docs still optional).
+
+Admin access
+- Previously: weaker discoverability / denial UX (per audit brief).
+- Now: multiple intentional entry points + `RequireRole` denial content + `adminEnv` for display name.
+- Mark: **Fixed** (product intent), **Partially Fixed** (security still not server-side).
+
+Layout / root styling
+- Previously: concerns about legacy centered layout, etc.
+- Now: `#app` full-width flex column, CSS variables, heading margin reset (`src/style.css`).
+- Mark: **Fixed** relative to “broken legacy layout” narrative (within this codebase).
+
+Documentation accuracy
+- Previously: drift vs code.
+- Now: `.env.example` improved; README still contradicts some behaviors.
+- Mark: **Partially Fixed** (env), **Not Fixed** (README feature phases).
+
+Responsiveness
+- Now: Home category chips + grid; Auth card stacks; admin blocks use responsive flex patterns.
+- Mark: **Unchanged** / **Partially Fixed** (more UI sections to validate on small screens—no regressions found in code).
+
+Performance
+- Route lazy loading for Watch, Auth, Upload, Admin (`src/App.tsx`).
+- Mark: **Unchanged** (reasonable split already).
+
+UX trust
+- Honest placeholders on `AdminPage`; explicit “client-only” in guards.
+- Mark: **Partially Fixed** vs audits asking for trust clarity.
+
+================================================================================
+4. FILE STRUCTURE REVIEW
+================================================================================
+
+Important layout (conceptual tree — src):
+- `src/main.tsx` — mount `#app`, `BrowserRouter`, `style.css`
+- `src/App.tsx` — routes, lazy pages, `AuthProvider`, `ThemeProvider`, `Layout`
+- `src/style.css` — Tailwind import, `:root` / `.dark` / `.warm`, `#app` rules
+- `src/context/` — `AuthContext.tsx`, `ThemeContext.tsx`
+- `src/services/` — `firebase.ts`, `videosService.ts`, `categoriesService.ts`, `commentsService.ts`,
+  `favoritesService.ts`, `watchHistoryService.ts`
+- `src/config/adminEnv.ts` — admin email list + display name helpers
+- `src/routes/guards.tsx` — `RequireAuth`, `RequireRole`
+- `src/pages/` — Home, Watch, Auth, Upload, Profile, Dashboard, Settings, About, Legal, Admin, AdminEntry,
+  NotFound
+- `src/components/layout/` — `Header.tsx`, `Layout.tsx`
+- `src/components/video/VideoCard.tsx`, `src/components/comments/CommentsSection.tsx`
+- `src/data/demoVideos.ts`
+
+Changed / notable files (relative to “before admin/env work” narrative):
+- `src/App.tsx` — includes `/admin-access`, lazy `AdminPage`, guards
+- `src/routes/guards.tsx` — access denied UX, Navigate state for login
+- `src/pages/AuthPage/AuthPage.tsx` — staff “System administrator” section + shield icon
+- `src/pages/AdminEntryPage/AdminEntryPage.tsx` — Hebrew + `missingFirebaseEnv` block
+- `src/components/layout/Header.tsx` — conditional Admin link
+- `src/config/adminEnv.ts` — centralizes admin env (vs inline duplication)
+- `.env.example` — extended comments for Vite/Vercel/local
+
+New files (current audit):
+- `src/pages/AdminEntryPage/AdminEntryPage.tsx`, `src/config/adminEnv.ts` (if not in oldest baseline)
+
+Removed files:
+- `MP-youtube_ADMIN_ACCESS_REPORT.txt` — **deleted**
+- `MP-youtube_FIREBASE_DEPLOYMENT_AND_GOOGLE_AUTH_REPORT.txt` — **deleted**
+- `MP-youtube_ADMIN_BUTTON_INTEGRATION_REPORT.txt` — **deleted**
+
+Suspicious / placeholders:
+- No obvious `TODO` hack files; Admin dashboard uses explicit “—” placeholders for future metrics
+  (`src/pages/AdminPage/AdminPage.tsx`).
+
+================================================================================
+5. BOOT AND STARTUP REVIEW
+================================================================================
+
+App startup flow:
+1. `main.tsx` renders `App` inside `BrowserRouter` and `StrictMode`.
+2. `ThemeProvider` applies `light`/`dark`/`warm` classes on `document.documentElement`.
+3. `AuthProvider` effect:
+   - If `!firebaseReady`: sets `loading=false`, `user=null`, `role=guest`, **no global error**
+     (explicit design — `src/context/AuthContext.tsx` lines 144–152).
+   - If `firebaseReady`: subscribes `onAuthStateChanged`, loads/creates `users/{uid}` via `ensureUserDoc`.
+
+Layout behavior:
+- `Layout` shows Header always.
+- Error banner only if `error && firebaseReady` (so missing Firebase does not spam red banner).
+- If `loading`, **entire `<Outlet />` replaced** by “Loading session...” — blocks all routed pages until
+  auth resolves when Firebase is configured.
+
+Console / runtime:
+- `firebase.ts` logs `console.warn` with missing keys when not ready — visible in devtools (acceptable
+  for dev; slightly noisy on production builds if misconfigured).
+
+Verdict:
+- Startup is **predictable**; **unchanged** core tradeoff: global loading gate when Firebase is on.
+- **Improved** operator clarity via `.env.example` and admin page messaging; not “cleaner” in console if
+  env missing.
+
+================================================================================
+6. GLOBAL LAYOUT AND STYLE REVIEW
+================================================================================
+
+Root layout:
+- `Layout.tsx`: `min-h-dvh`, CSS vars `--bg`/`--text`, `max-w-6xl` content column — consistent shell.
+
+`#app` (`src/style.css`):
+- Full width, flex column, `min-height: 100svh`, `text-align: left` — addresses prior “legacy centered
+  template” class of issues.
+
+Typography:
+- Base `font: 18px/145%` on `:root`, scales down at `max-width: 1024px` — global; components use Tailwind
+  `text-*` for local control.
+
+Width / alignment:
+- Header and main share `max-w-6xl` pattern; auth uses `max-w-md` — intentional narrow form.
+
+Old layout problems “truly fixed”:
+- Within repo evidence: **yes** for `#app` and global alignment story.
+- Remaining: subjective “premium” polish—still a utility-first Tailwind product, not a bespoke design system.
+
+================================================================================
+7. AUTHENTICATION REVIEW (DEEP)
+================================================================================
+
+Email login / register / forgot password:
+- Implemented via Firebase Auth (`signInWithEmailAndPassword`, `createUserWithEmailAndPassword`,
+  `sendPasswordResetEmail`) — all gated by `assertFirebaseConfigured()` → throws if `!firebaseReady`.
+- UI disables submit when `!firebaseReady` (`AuthPage`).
+
+Google Sign-In:
+- `GoogleAuthProvider` + `signInWithPopup`, `prompt: 'select_account'` (`AuthContext.tsx`).
+- Disabled when `!firebaseReady` (button `disabled={!firebaseReady || googleBusy}`).
+- Error mapping includes `auth/operation-not-allowed`, `auth/unauthorized-domain` — **good for ops**.
+
+Firebase missing-env handling:
+- `AuthPage`: Hebrew/English adjacent copy for Firebase setup + lists `missingFirebaseEnv`.
+- **Previously weak / now improved:** targeted explanation instead of silent failure alone.
+
+Admin login entry:
+- **Auth card:** “System administrator” panel — links to `/admin-access` or `/admin` if already admin +
+  `firebaseReady`.
+- **Route:** `/admin-access` — staff narrative + amber box if Firebase missing.
+- **No secrets** in UI strings beyond public config filenames — **pass**.
+
+Auth UX quality:
+- Forms use `react-hook-form` + `zod` — solid.
+- Trust: high for “why Google is disabled”; medium for “security” (still client-side roles).
+
+Auth loading gate:
+- When Firebase configured, initial navigation shows “Loading session...” for all pages using Layout until
+  first auth event — **unchanged**; can feel sluggish on slow networks (not a new regression).
+
+================================================================================
+8. FIREBASE / ENVIRONMENT REVIEW
+================================================================================
+
+Mandatory vars (all six non-empty strings):
+- Listed in `src/services/firebase.ts` (`VITE_FIREBASE_API_KEY` through `VITE_FIREBASE_APP_ID`).
+
+Handling missing env:
+- **Professional for devs:** `.env.example`, missing list on Auth/Admin entry, console warn with keys.
+- **User-facing:** Google and forms disabled — correct fail-closed for auth.
+
+Graceful degradation:
+- **Categories:** default four slugs when Firestore unavailable or empty.
+- **Home feed:** demo videos when no public Firestore videos or `!firebaseReady`.
+- **Watch:** demo IDs resolve without Firestore; non-demo IDs → `null` → “Video not found” if no Firebase.
+- **Comments:** `fetchComments` returns `[]` if `!firebaseReady`; `addComment` throws — user may see empty
+  thread with failed post if misconfigured (edge).
+
+Deployed experience:
+- **Trustworthy only if** Vercel env set before build — still operator-dependent.
+
+Operational features:
+- With valid env + Rules: upload, comments, favorites, history paths are **wired** in code.
+- Without env: **not** operational — by design.
+
+================================================================================
+9. ADMIN ACCESS REVIEW
+================================================================================
+
+Dedicated entry exists:
+- **Yes:** `/admin-access`, Auth page staff block, Header “Admin” (admins only).
+
+Visual integration:
+- Auth page: bordered purple-gradient panel, shield icon, uppercase “System administrator” — distinct from
+  purple primary member CTA.
+- **Premium/restricted feel:** adequate; not garish.
+
+Functional behavior:
+- Staff path goes to `/admin-access` → “Continue to sign in” with `state.from` `/admin` (or `/auth` when
+  coming from Auth staff link with `from: '/auth'`).
+- Logged-in admin: direct `/admin` links.
+- **Separation from member flow:** clear.
+
+Safety:
+- **Route:** `RequireRole` blocks non-admins with explicit denial + Rules disclaimer — **not only hidden
+  buttons**.
+- **Cosmetic risk remains:** `VITE_ADMIN_EMAILS` is client-bundled; admin role in Firestore can diverge —
+  `ensureUserDoc` prefers stored `role` when doc exists (`AuthContext.tsx`), so promoting an account may
+  require Firestore edit if role already persisted as `user`.
+
+What admin can do:
+- See `AdminPage` — honest placeholders, session info, primary display name from `getPrimaryAdminDisplayName()`.
+
+What admin cannot do:
+- No live user/video/report management — explicitly labeled placeholder.
+
+================================================================================
+10. CATEGORY AND CONTENT REVIEW
+================================================================================
+
+Category rendering:
+- `fetchCategories` merges Firestore categories with defaults by slug; ensures default four exist for UX
+  consistency (`categoriesService.ts`).
+
+Filtering:
+- Home uses `category` query param + `fetchPublicVideos` / `searchVideosLocally` — works; demos filtered by
+  `categoryId` in demo helpers.
+
+Demo content:
+- `DEMO_VIDEOS` uses public sample URLs; Home shows notice when any demo id in results.
+
+Empty states:
+- Home: “No videos here yet” with context — **good**.
+
+“Dead” feeling:
+- **Improved** vs empty Firestore: demo clips keep grid alive when Firebase missing or DB empty.
+- With real uploads: depends on data — not a code regression.
+
+================================================================================
+11. PAGE-BY-PAGE REVIEW
+================================================================================
+
+HomePage (`src/pages/HomePage/HomePage.tsx`)
+- Purpose: Search, category filter, video grid.
+- Condition: Solid; skeletons while loading; demo notice when demos shown.
+- Improvements: Category chips on mobile + sidebar desktop — discoverability.
+- Problems: Still client-only search (fetch then filter) — acceptable for phase.
+- Trust: Medium-high for browsing; demo label helps honesty.
+- UX: Strong.
+- Readiness: High for demo/prototype.
+
+WatchPage (`src/pages/WatchPage/WatchPage.tsx`)
+- Purpose: Player, metadata, favorites, comments, related.
+- Condition: Hidden video check in UI for `visibility` — **not** Rules-level security.
+- Improvements: Related sidebar; favorite integration.
+- Problems: Security disclaimer accurate in code comment; Rules still required.
+- Trust: Medium (honest if team reads comments).
+- UX: Good.
+- Readiness: Demo-ready; production needs Rules.
+
+AuthPage (`src/pages/AuthPage/AuthPage.tsx`)
+- Purpose: Login/register/forgot + Google + **staff entry block**.
+- Condition: Firebase gating explicit; staff section at bottom (not forgot mode).
+- Improvements: Staff path integrated; dual language Firebase notice (Hebrew in Firebase box).
+- Problems: Mixed EN/HE in one page — acceptable but slightly inconsistent brand voice.
+- Trust: High for setup honesty.
+- UX: Good hierarchy.
+- Readiness: High.
+
+UploadPage (`src/pages/UploadPage/UploadPage.tsx`)
+- Purpose: Upload video + thumb to Storage + Firestore doc.
+- Condition: Requires auth + Firebase; `uploadVideo` throws if misconfigured.
+- Improvements: N/A in this audit scope.
+- Problems: Large file client upload — inherent demo limits.
+- Trust: Medium (depends on Rules for abuse prevention).
+- UX: Adequate.
+- Readiness: Dev/staging with Storage rules.
+
+DashboardPage (`src/pages/DashboardPage/DashboardPage.tsx`)
+- Purpose: User’s videos + edit metadata + delete.
+- Condition: Implemented when Firebase ready.
+- README still implies read-only — **doc drift**.
+- Trust: Medium-high functionally.
+
+ProfilePage (`src/pages/ProfilePage/ProfilePage.tsx`)
+- Purpose: User videos + favorites + history + editing — substantial screen.
+- Condition: Data-dependent on Firebase.
+- README “Phase 2” drift for favorites/history.
+
+SettingsPage (`src/pages/SettingsPage/SettingsPage.tsx`)
+- Purpose: Theme only — works without backend.
+- Condition: Clean, low risk.
+
+AdminPage (`src/pages/AdminPage/AdminPage.tsx`)
+- Purpose: Staff overview + placeholders.
+- Condition: Honest about non-features — high trust for stakeholders who read.
+
+AdminEntryPage (`src/pages/AdminEntryPage/AdminEntryPage.tsx`)
+- Purpose: Staff landing; Firebase setup help.
+- Condition: **Improved** troubleshooting copy; Hebrew block for local operators.
+
+AboutPage / LegalPage / NotFoundPage
+- Purpose: Static / legal / 404.
+- Condition: Assumed stable; not re-audited line-by-line in this pass.
+
+================================================================================
+12. SHARED COMPONENTS REVIEW
+================================================================================
+
+Header (`src/components/layout/Header.tsx`)
+- Nav: Home, Search (state to home+focus), Upload, About; auth cluster.
+- Admin link only when `role === 'admin'` — **good** (not discoverable to non-admins except via URL/auth staff block).
+- **Minor UX concern:** `title={role}` on Logout exposes role on hover — unnecessary information disclosure.
+
+Layout (`src/components/layout/Layout.tsx`)
+- Global error banner gated by `firebaseReady` — avoids false “Firebase not configured” banner pattern
+  described in older README.
+
+VideoCard — standard card; no issues flagged.
+
+CommentsSection — full CRUD path when Firebase ready; empty list when not — could add “Firebase required”
+microcopy for posting (nice-to-have).
+
+Category controls — Home aside + chips — responsive patterns consistent.
+
+================================================================================
+13. UX REVIEW
+================================================================================
+
+Clarity: High for auth/env failure; high for admin denial.
+
+Discoverability:
+- **Improved:** `/admin-access`, Auth staff block, admin header link for admins.
+
+User confidence:
+- Demo labeling reduces “fake product” feeling; admin page honesty helps.
+
+Feedback:
+- Form errors via zod; Firebase errors mapped — good.
+
+Empty states:
+- Home empty state explanatory — good.
+
+Friction:
+- Global loading gate — friction for all routes during auth init.
+
+Emotional quality:
+- Purple/dark modern baseline; staff zones slightly more “premium” — subjective positive.
+
+================================================================================
+14. VISUAL DESIGN REVIEW
+================================================================================
+
+Improvement:
+- Staff blocks add hierarchy and intent without overwhelming member flows — **yes, modest visual upgrade**.
+
+Premium vs generic:
+- Still broadly “Tailwind startup” aesthetic — **improved** accents, not a full rebrand.
+
+Hierarchy:
+- **Stronger** on Auth (primary vs staff panel) and Home (sidebar vs grid).
+
+Alive vs dead:
+- Demo content + skeletons — **more alive** than empty-state-only apps.
+
+Admin/auth integration:
+- **Cohesive** — purple system, shield motif, consistent with Header admin accent.
+
+================================================================================
+15. RESPONSIVENESS REVIEW
+================================================================================
+
+Mobile: Home horizontal chips; Auth single column; Header hamburger drawer mirrors desktop links + admin.
+
+Tablet/desktop: `lg:` sidebar for categories — intentional.
+
+Auth card: `max-w-md` centered in layout column — readable.
+
+Overflow: Category chips use `overflow-x-auto` — standard pattern.
+
+No new overflow issues identified in static review.
+
+================================================================================
+16. PERFORMANCE REVIEW
+================================================================================
+
+Startup perception: Auth loading blocks full page — can feel slow.
+
+Route splitting: Watch, Auth, Upload, Admin lazy — **good**.
+
+Bundle: Firebase SDK large (`AuthContext` chunk ~436KB gzipped ~135KB per build output — inherent).
+
+Dead CSS: Not formally measured; Tailwind v4 tree-shakes unused utilities in practice.
+
+Feel faster: No evidence of perf regression from admin UI additions (small components).
+
+================================================================================
+17. SECURITY AND TRUST REVIEW
+================================================================================
+
+Firebase Rules: **Still required** — repeatedly noted in guards and `videosService` / `WatchPage`.
+
+Admin flow: Client role from env + Firestore — **not** cryptographic trust.
+
+Hidden videos: UI hides; **data leak possible** if Rules allow read — documented in README and code.
+
+Auth trust: Firebase handles credentials; env keys are public web config — normal for Firebase web.
+
+UI vs reality: **Guards explicitly disclaim** production reliance on client checks — **good**.
+
+================================================================================
+18. DOCUMENTATION REVIEW
+================================================================================
+
+README.md:
+- Claims AuthProvider shows error when Firebase not configured — **inaccurate** vs current `AuthContext`
+  (missing env clears error, no global banner).
+- Claims Phase 2 for favorites/history/comments — **partially outdated**: code implements these when
+  Firebase ready (`favoritesService`, `watchHistoryService`, `CommentsSection`).
+- Route list **missing** `/admin-access` — **stale**.
+
+.env.example:
+- **Accurate** for mandatory vars and Vite/Vercel behavior; includes admin display name and emails.
+
+================================================================================
+19. BUG REVIEW (STRUCTURED)
+================================================================================
+
+[B1] README misstates Auth error behavior when Firebase missing
+- Location: `README.md` (“מה קורה אם ה-Firebase לא מוגדר?”)
+- Severity: Medium (documentation / trust)
+- Symptom: Readers expect global error; app intentionally avoids it.
+- Cause: Doc not updated after `AuthContext` change.
+- Status: **Not Fixed**
+- Next: Align README with `AuthContext` + Layout gating.
+
+[B2] README phase drift (comments / favorites / history / dashboard edit)
+- Location: `README.md` Phase 2 bullets vs `ProfilePage`/`CommentsSection`/etc.
+- Severity: Medium
+- Symptom: Stakeholders underestimate delivered scope.
+- Status: **Not Fixed**
+- Next: Update phase table to match code.
+
+[B3] Route list incomplete (missing `/admin-access`)
+- Location: `README.md` guards section
+- Severity: Low
+- Status: **Not Fixed**
+
+[B4] Existing Firestore user may not auto-promote to admin when added to `VITE_ADMIN_EMAILS`
+- Location: `src/context/AuthContext.tsx` `ensureUserDoc` — uses `data.role` from existing doc.
+- Severity: Low–Medium (ops confusion)
+- Symptom: Admin list env updated but user stays `user` in Firestore.
+- Status: **Unchanged** / **Not Fixed** (by design unless doc migration added)
+- Next: Document or merge role upgrade logic.
+
+[B5] Comments posting error when Firebase not configured
+- Location: `addComment` throws; UI generic “Failed to post comment.”
+- Severity: Low
+- Symptom: User might not know it’s config.
+- Status: **Unchanged**
+- Next: Surface “Firebase not configured” in CommentsSection when `!firebaseReady`.
+
+[B6] Logout `title={role}` tooltip
+- Location: `Header.tsx` desktop + mobile logout buttons
+- Severity: Low (privacy nit)
+- Status: **Unchanged**
+- Next: Remove or replace with generic “Sign out”.
+
+[B7] Hidden video access via direct Firestore reads
+- Location: data model + Rules external
+- Severity: High if Rules open
+- Status: **Not Fixed** (architectural)
+- Next: Tighten Rules (not front-end task alone).
+
+================================================================================
+20. ROOT PROBLEMS — CURRENT VERSION (TRUE REMAINING)
+================================================================================
+
+1. **Production authorization** still depends on Firebase Security Rules / backend — client checks are
+   explanatory only.
+2. **Environment configuration** remains a hard prerequisite for real auth and persistence; no runtime
+   config fetch.
+3. **Documentation (README)** lags code for phases and auth/env behavior.
+4. **Admin role management** can be inconsistent between env list and persisted Firestore `role` for
+   existing users.
+5. **Global auth loading** blocks all routes — acceptable but a structural UX limitation.
+
+================================================================================
+21. WHAT IMPROVED MOST (STRONGEST)
+================================================================================
+
+1. **Admin entry ecosystem** — routes, guards, Auth staff panel, Header link, honest Admin dashboard.
+2. **Operator-facing Firebase guidance** — `.env.example`, missing var lists, AdminEntryPage Hebrew guidance,
+  Vercel redeploy note.
+3. **Trust copy** — guards and admin page state client vs Rules clearly.
+4. **Browse viability without backend** — demo videos + categories still make Home/Watch feel populated.
+
+================================================================================
+22. WHAT STILL BLOCKS PROFESSIONAL RELEASE
+================================================================================
+
+1. **Security Rules** not represented in repo — must be validated per deployment.
+2. **README inaccuracy** — undermines professional handoff.
+3. **No automated tests** visible — regression risk for auth/guards.
+4. **Client-only admin gating** — must be paired with Rules for any sensitive collections.
+
+================================================================================
+23. ACTION PLAN
+================================================================================
+
+A. Must Fix Now
+- Update `README.md` to match actual auth/env behavior and feature status; add `/admin-access` to route list.
+
+B. Must Fix Before Production
+- Author and test Firebase Security Rules for `videos`, `comments`, `users`, `favorites`, admin reads.
+- Verify Vercel env for all six `VITE_FIREBASE_*` on each environment; confirm authorized domains.
+
+C. Recommended UX Improvements
+- Remove `title={role}` from logout; optional `firebaseReady` hint in CommentsSection when comments empty
+  due to config.
+- Consider narrowing global loading to allow static pages without blocking (larger refactor).
+
+D. Nice to Have Later
+- E2E tests for auth and `/admin` denial paths.
+- Admin role sync when env admin list changes.
+
+================================================================================
+24. SCORES (1–100)
+================================================================================
+
+Visual Design:           78
+UX:                      74
+Stability:               80
+Content Readiness:       72  (strong with demos; real content needs data + Rules)
+Performance:             76  (acceptable; Firebase chunk weight)
+Maintainability:           73  (clear structure; README drift hurts)
+Trustworthiness:         70  (honest guards; README undermines)
+Production Readiness:    58  (Rules + env ops + doc fixes required)
+
+================================================================================
+25. FINAL CONCLUSION
+================================================================================
+
+Is the project better now?
+- **Yes**, for admin flows, env operability messaging, and honest security communication — **meaningful**
+  incremental progress vs the concerns listed in the audit brief.
+
+Stable enough for design expansion?
+- **Yes** — component boundaries and Tailwind theming support further UI iteration.
+
+Ready for serious client presentation?
+- **Conditionally yes** as a **prototype**: demo content and modern UI land well; **prepare talking points**
+  on Firebase env on deploy and Security Rules — README should be fixed first to avoid contradictions.
+
+Ready for production?
+- **Not yet** without Rules hardening, deployment env verification, and documentation alignment.
+
+Smartest next step:
+- **(1)** Fix README drift and route documentation; **(2)** define and test Firebase Security Rules for
+  each collection touched by the app; **(3)** run a deployed smoke test (Google login, upload, comment,
+  non-admin `/admin` denial) on the real domain.
+
+================================================================================
+COMPARISON CLOSURE (EXPLICIT)
+================================================================================
+
+- **Previously broken (misconfigured deploy) / now improved:** Operator guidance (`.env.example`,
+  AdminEntryPage, Auth page) — **not** “fixed” without user action to set env.
+- **Previously weak admin discoverability / now present:** Multiple intentional admin entry surfaces +
+  richer access denied page.
+- **Previously cosmetic layout concerns / now improved:** `#app` + global CSS structure remain sound;
+  admin/staff UI adds real navigation paths, not only styling.
+- **Unchanged:** Core security model (client-side role + public web config); Firebase Rules still external.
+- **Still unresolved:** README accuracy; production-grade enforcement; optional admin role sync for
+  existing users.
+- **Regressed:** Removal of standalone TXT audit artifacts — **documentation surface reduced** (reports
+  deleted per user request); compensate by keeping README accurate.
+
+— End of audit —

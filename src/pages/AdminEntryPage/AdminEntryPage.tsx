@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 
 import { useAuth } from '../../context/AuthContext'
+import { missingFirebaseEnv } from '../../services/firebase'
 
 /**
  * Public entry point explaining staff/admin sign-in.
@@ -22,8 +23,24 @@ export default function AdminEntryPage() {
 
       {!firebaseReady ? (
         <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-100">
-          Firebase is not configured. Staff sign-in is unavailable until <code className="rounded bg-black/5 px-1 dark:bg-white/10">.env</code>{' '}
-          is set and the dev server is restarted.
+          <p className="font-medium">חיבור Firebase לא מוגדר</p>
+          <p className="mt-2 leading-relaxed">
+            כדי שמנהל המערכת (וחיבור משתמשים) יעבדו, צריך את כל משתני{' '}
+            <code className="rounded bg-black/5 px-1 dark:bg-white/10">VITE_FIREBASE_*</code> — העתק מ־
+            <code className="rounded bg-black/5 px-1 dark:bg-white/10">.env.example</code> לקובץ{' '}
+            <code className="rounded bg-black/5 px-1 dark:bg-white/10">.env</code> או{' '}
+            <code className="rounded bg-black/5 px-1 dark:bg-white/10">.env.local</code>, מלא ערכים אמיתיים מ־Firebase
+            Console (הגדרות הפרויקט → האפליקציה שלך), ואז הפעל מחדש את{' '}
+            <code className="rounded bg-black/5 px-1 dark:bg-white/10">npm run dev</code>.
+          </p>
+          <p className="mt-2 text-xs leading-relaxed opacity-90">
+            ב־Vercel: Project Settings → Environment Variables — אותם שמות, ואז Deploy מחדש (הבנייה קוראת את המשתנים).
+          </p>
+          {missingFirebaseEnv.length > 0 ? (
+            <p className="mt-3 text-xs font-mono leading-relaxed">
+              משתנים חסרים או ריקים: {missingFirebaseEnv.join(', ')}
+            </p>
+          ) : null}
         </div>
       ) : null}
 
